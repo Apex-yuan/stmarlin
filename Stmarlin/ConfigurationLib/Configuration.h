@@ -177,7 +177,7 @@
 //if PREVENT_DANGEROUS_EXTRUDE is on, you can still disable (uncomment) very long bits of extrusion separately.
 #define PREVENT_LENGTHY_EXTRUDE
 
-#define EXTRUDE_MINTEMP 5 //170//该值防止挤出头温度未达到设定目标温度而进行挤出操作时的潜在风险
+#define EXTRUDE_MINTEMP 170//该值防止挤出头温度未达到设定目标温度而进行挤出操作时的潜在风险
 
 //下面该值限制挤出的最大长度，超过该长度，挤出机不动作
 #define EXTRUDE_MAXLENGTH (X_MAX_LENGTH+Y_MAX_LENGTH) //prevent extrusion of very large distances.
@@ -265,11 +265,11 @@
 //真正的打印中心一般在[[(x.max-x.min)/2,(y.max-y.min)/2]]的位置。
 //中心位置坐标需要在后面的切片工具中使用到，打印中心坐标应该与这里的参数配置匹配，否则很可能会打印到平台以外
 // Travel limits after homing
-#define X_MAX_POS 200                                                                                              
-#define X_MIN_POS 0 //-250 //0
-#define Y_MAX_POS 150 //0 //150
-#define Y_MIN_POS 0 //-150 //0
-#define Z_MAX_POS 150
+#define X_MAX_POS 210                                                                                              
+#define X_MIN_POS 0 
+#define Y_MAX_POS 150
+#define Y_MIN_POS 0 
+#define Z_MAX_POS 210
 #define Z_MIN_POS 0
 
 #define X_MAX_LENGTH (X_MAX_POS - X_MIN_POS)
@@ -294,7 +294,8 @@
 //// MOVEMENT SETTINGS//轴设置                                                                                                         
 #define NUM_AXIS 4 // The axis order in all axis related arrays is X, Y, Z, E
 //轴的数量，各轴的配置是顺序是X, Y, Z, E
-#define HOMING_FEEDRATE {50*60, 50*60, 10*60, 0}  // set the homing speeds (mm/min)                                             
+#define HOMING_FEEDRATE {50*60, 50*60, 20*60, 0}  // set the homing speeds (mm/min)  
+#define AGAIN_HOMING_FEEDRATE {20*60, 20*60, 6*60, 0}  // set the homing speeds (mm/min)  
 //上面配置为回原点的速度，可根据实际情况做相应调整。单位是mm/min
 // default settings
 
@@ -306,11 +307,11 @@
 //挤出机计算公式（E轴）：步进电机每转步数*步进电机驱动细分配置*挤出机齿轮传动比/挤出轮周长
 
 
-#define DEFAULT_MAX_FEEDRATE          {500, 500, 5, 25}    // (mm/sec)                                                                                                             
+#define DEFAULT_MAX_FEEDRATE          {300, 300, 30, 30}    // (mm/sec)                                                                                                             
 //配置各电机的最高速度。过高的值需要更大的电流输出，这将导致电机过热，并且有可能使电机在打印时失步。一般可设置为200-400
 
                                                                                                                                 
-#define DEFAULT_MAX_ACCELERATION      {9000,9000,100,10000}  //{3000,3000,100,3000} //100    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for skeinforge 40+, for older versions raise them a lot.
+#define DEFAULT_MAX_ACCELERATION      {3000,3000,100,3000}  //{3000,3000,100,3000} //100    // X, Y, Z, E maximum start speed for accelerated moves. E default values are good for skeinforge 40+, for older versions raise them a lot.
 //该配置为电机最大加速度。过高的电机加速度将导致电机在打印动作时过冲，从而丢失，建议将X\Y最大加速度修改为1000-3000
 
 //默认打印加速度                                                                                                                
@@ -361,6 +362,7 @@
 //LCD and SD support//LCD和SD卡配置，请根据你的LCD板子做相应配置，再次不作说明
 //#define ULTRA_LCD  //general lcd support, also 16x2
 //#define DOGLCD  // Support for SPI LCD 128x64 (Controller ST7565R graphic Display Family)
+#define LCD12864_ST7920 // 支持ST7920芯片的LCD12864屏
 #define SDSUPPORT // Enable SD Card Support in Hardware Console
 //#define SDSLOW // Use slower SD transfer mode (not normally needed - uncomment if you're getting volume init error)
 

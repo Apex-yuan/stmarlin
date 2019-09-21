@@ -16,7 +16,7 @@ CardReader card;
 bool autostart_stilltocheck = true; //the sd start is delayed, because otherwise the serial cannot answer fast enought to make contact with the hostsoftware.
 bool autostart_atmillis = 0;
 
-//#ifdef SDSUPPORT
+#ifdef SDSUPPORT
 
 void gcode_ls(u8 * path)
 {
@@ -270,5 +270,7 @@ int16_t file_read(void)
 		return -1;// printf("f_read() fail .. \r\n");  
 	}
 }
-//#endif //SDSUPPORT
+
+
+#endif //SDSUPPORT
 

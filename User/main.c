@@ -49,7 +49,7 @@ int main(void)
 	 lcd_menuInit();          //屏幕菜单初始化
   
  	setup(); //执行打印进程所需的初始化函数
-	
+  
 	while(1) 
 	{		
 		loop(); //打印进程循环体

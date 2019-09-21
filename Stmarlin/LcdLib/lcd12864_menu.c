@@ -30,41 +30,40 @@
 
 #define NULL 0
 
-//FIL fgcode; //用于测试读取文件内容的文件句柄
-//char buf[100];//用于测试读取文件内容的接收数组
-//UINT brr; //用于测试读取文件内容需要的变量
-
-uint8_t **zzz; //存储文件名列表，必须用malloc（）函数申请空间才可以使用
-u16 totgconum; 		//Gcode文件总数
-u16 curindex;		     //Gcode文件当前索引
-uint8_t lcdDisplayUpdate = 1; //屏幕显示更新标志位
-static uint32_t nextUpdateMillis = 0; //用来记录下次更新屏幕的时间
-char temperature0[30],temperatureBed[30]; 
-char percentDone[30];
-char consumingTime[30];
-char printingFilename[30];
-char cardFileList[100][30];
-
-uint16_t temp_feedMultiply = 100; //进给速度的倍率
-uint16_t temp_e0TargetTemp;
-uint8_t differenceValue = 5;
-
-static float manual_feedrate[4] = {50*60,50*60,4*60,60};
+uint8_t ** cardFileNameList; //存储文件名列表，必须用malloc（）函数申请空间才可以使用
+uint16_t totgconum; 		//Gcode文件总数
+char printingFilename[100];  //当前打印文件的文件名，因为多个地方需要用到该文件名，每次从文件名列表中提取过于繁琐，因此在此定义出来，其赋值是在lcd_cardPrinting()函数中完成的。
+bool lcdDisplayUpdate = 1; //屏幕显示更新标志位
+//bool cardInsertFlag;
+static uint32_t lcdNextUpdateMillis = 0; //用来记录下次更新屏幕的时间
 
 MenuTypeDef * CurrentMenu; //指向当前菜单的结构体指针
 
 
 /**********************一级菜单*********************/
+#ifdef SDSUPPORT
 MenuTypeDef MainMenu = 
 {
- 0,0,2,3,0,
+ 0,0,2,4,0,
 	"   3D Printer   ",
 	{
 		"Prepare         ",
 		"Control         ",
-		"Card Menu       "
+		"Card Menu       ",
+    "About           ",
 	}
 };
+#else
+MenuTypeDef MainMenu = 
+{
+ 0,0,2,2,0,
+	"   3D Printer   ",
+	{
+		"Prepare         ",
+		"Control         ",
+	}
+};
+#endif
 
 /**********************二级菜单*********************/
 MenuTypeDef PrepareMenu = 
@@ -96,25 +95,15 @@ MenuTypeDef ControlMenu =
 		"Back MainMenu ↑", //5
 	}
 };
-
+#ifdef SDSUPPORT
 MenuTypeDef CardMenu = 
 {
-	CARD_MENU_ID,0,2,100,0,
+	CARD_MENU_ID,0,2,0,0,
 	" Card File List ",
 
 };
+#endif
 /**********************三级菜单*********************/
-//MenuTypeDef MoveDistanceMenu = 
-//{
-//	0,0,3,4,0,
-//	"MoveDistanceMenu",
-//	{
-//		"goMoveAxisMenu",
-//		"Move  0.1mm   ",
-//		"Move  1  mm   ",
-//		"Move 10  mm   ",
-//	}
-//};
 
 MenuTypeDef TemperatureMenu = 
 {
@@ -176,6 +165,8 @@ MenuTypeDef MoveAxisMenu =
 	}
 };
 
+#ifdef SDSUPPORT
+
 //在打印时的菜单
 /**********************状态菜单*********************/
 MenuTypeDef StatusMenu = 
@@ -192,18 +183,14 @@ MenuTypeDef StatusMenu =
 /**********************打印选项菜单*********************/
 MenuTypeDef PrintingOptionsMenu = 
 {
-	0,0,2,7,0,
+	0,0,2,5,0,
 	"Printing Options",
 	{
 		"Back Last Menu",       
 		"Pause         ",
 		"Stop Printing ",
 		"Adjust Param  ",
-		"ChangeFilament",
-		"Change Speed  ",
-		"Change Temp   ",
-		
-		
+		"ChangeFilament",		
 	}
 };
 
@@ -242,6 +229,8 @@ MenuTypeDef PrintingFinishedMenu =
 	  "any key back... ",
 	}
 };
+#endif
+
 //确认与取消菜单，类似于这种选择形式都可以使用该菜单，
 //目前使用该菜单的部分：打印停止的选择，断电续打的选择
 MenuTypeDef YesOrNoMenu = 
@@ -251,8 +240,8 @@ MenuTypeDef YesOrNoMenu =
 	{
 	  "YES OR NO ?   ",
 	  "              ",
-	  "YES         ",
-	  "NO          ",
+	  "YES           ",
+	  "NO            ",
 	}
 };
 
@@ -273,31 +262,46 @@ void welcome_screen(void)
 void lcd_productInfo(void)
 {
 	LCD12864_Clear();
-	LCD12864_ShowString(0,0,"OTouch->TopWill ");
-	LCD12864_ShowString(1,0," WECOME TO USE  ");
-	LCD12864_ShowString(2,0,"STM32 3D Printer");
-	LCD12864_ShowString(3,0,"author: wangyuan");
+	LCD12864_ShowString(0,0,"固件: Stmarlin  ");
+	LCD12864_ShowString(1,0,"版本: 2.0.2     ");
+	LCD12864_ShowString(2,0,"作者: ApexYuan  ");
+  LCD12864_ShowString(3,0,"QQ  : 2665504761");
 	while(!keyPressed); //等待按键按下
+  CurrentMenu = &MainMenu;
+  lcdDisplayUpdate = 1;
 }
+//void lcd_noSupportLcd(void)
+//{
+//  LCD12864_Clear();
+//	LCD12864_ShowString(0,0," No Support SD! ");
+//	//LCD12864_ShowString(1,0,"                ");
+//	//LCD12864_ShowString(2,0,"STM32 3D Printer");
+//	//LCD12864_ShowString(3,0,"author: wangyuan");
+//	while(!keyPressed); //等待按键按下
+//}
 
 //lcd屏幕更新函数
 void lcd_update(void)
 {
-	lcd_cardInsertOrNot(); //检测SD卡的插入与否
+  #ifdef SDSUPPORT
+	lcd_checkCardInsert(); //检测SD卡的插入与否
+  #endif
+  
 	CurrentMenu->displayUpdate_f(); //处理按键操作下的屏幕更新
 	
-	if(nextUpdateMillis < millis()) //屏幕超时更新
+	if(lcdNextUpdateMillis < millis()) //屏幕超时更新
 	{
 //		FLASH_WRITE_VAR(FLASH_SET_STORE_OFFSET+114,card.sdpos);
 //		FLASH_WRITE_VAR(FLASH_SET_STORE_OFFSET+118,current_position[Z_AXIS]);
 //		FLASH_WRITE_VAR(FLASH_SET_STORE_OFFSET+122,printingFilename);
+    #ifdef SDSUPPORT
 		if(STATUS_MENU_ID == CurrentMenu->ID || CARD_MENU_ID == CurrentMenu->ID) //状态需要依据时间刷新的菜单
 		{
 		  lcdDisplayUpdate = 1;
 			CurrentMenu->displayUpdate_f();
 		}
-		//card_readFileListInfo();//如果不加上该函数只在初始化中执行一次，SD卡中的文件后面几个会显示乱码，原因尚不清楚。现在该函数加上也可以正常连接串口了，不清楚是否有细微异常。
-	  nextUpdateMillis = millis() + 800; //刷新周期（每100ms刷新一次）
+    #endif
+	  lcdNextUpdateMillis = millis() + 800; //刷新周期（每100ms刷新一次）
 	}
 }
 
@@ -326,36 +330,54 @@ void lcd_configResetDefault(void) //恢复出厂设置
 	Config_ResetDefault();
 }
 
+#ifdef SDSUPPORT
 
 //2017/3/10 修复了每次检测都会重新读取卡信息致使连接不上串口的bug
 //检测SD卡是插入还是拔出状态
-void lcd_cardInsertOrNot()
+void lcd_checkCardInsert()
 {
-	uint8_t rereadsdfileinfoflag; //重读SD卡文件信息标志位
+  uint8_t rereadsdfileinfoflag = 0;; //重读SD卡文件信息标志位
 	//检测SD卡，以更新Card Menu 菜单条目的内容
 	if(SD_CD) //未插入SD卡
 	{
 		rereadsdfileinfoflag = 1; //重读SD卡文件信息标志位置位
+ 
 		MainMenu.subMenus[2] = NULL;	
 		MainMenu.func[2] = &lcd_noCard;
-    	//lcdDisplayUpdate = 1;
 		if(CurrentMenu == &CardMenu) //在CardMenu菜单下拔出SD卡返回主菜单
 		{
 			CurrentMenu = &MainMenu;
 			lcdDisplayUpdate = 1;
 		}
+//    while(1)
+//      {
+//        //keyPressed = 0;
+//        LCD12864_Clear();
+//        LCD12864_ShowString(0,0,"003");
+//        LCD12864_ShowNum(1,0,rereadsdfileinfoflag);
+//        while(!keyPressed); 
+//        keyPressed = 0;  
+//        break;
+//      }
+    /* 释放内存（按申请的倒序free），（内存申请部分在card_readFileListInfo()函数内），若不释放内存，多次插拔SD卡重复申请内存会致使内存溢出而死机*/ //（切记：动态申请的内存一定要记得释放）
+    for(uint8_t i = 0; i < totgconum; ++i)
+    {
+      myfree(cardFileNameList[i]);
+    }
+    myfree(cardFileNameList);
 	}
-	if(rereadsdfileinfoflag == 1) //从无卡状态下，插入SD卡
-	{
-		if(!SD_CD)
-		{
-            //exfuns_init();
-			//f_mount(fs[0],"0:",1); 	//挂载SD卡     		
+    
+	if(rereadsdfileinfoflag == 1 && !SD_CD) //从无卡状态下，插入SD卡
+	{ 
+      rereadsdfileinfoflag = 0; //清零
 			MainMenu.subMenus[2] = &CardMenu;
 			MainMenu.func[2] = NULL;
-		  card_readFileListInfo();
-		}
-		rereadsdfileinfoflag = 0; //清零
+      
+      card_readFileListInfo();
+      CardMenu.itemCount = totgconum;
+      CardMenu.parent = &MainMenu;
+      CardMenu.displayUpdate_f = &lcd_displayUpdate_cardMenu;
+		
 	}
 }
 
@@ -363,38 +385,50 @@ void lcd_cardInsertOrNot()
 void lcd_noCard(void)
 {
 	LCD12864_Clear();
-  LCD12864_ShowString(0,1,"  No SD Card");
+  LCD12864_ShowString(0,0,"  No SD Card!   ");
 	while(SD_CD)
 	{
 		if(keyPressed) //有按键按下
 		{
-			CurrentMenu = &MainMenu; //返回主菜单
+			keyPressed = 0;
+      CurrentMenu = &MainMenu; //返回主菜单
+      lcdDisplayUpdate = 1;
 			return; //跳出当前函数
 		}
 	}
-	//由无卡状态下插入了SD卡，恢复显示SD卡文件列表
-	card_readFileListInfo();  
+	//由SD卡菜单的无卡状态下插入了SD卡，恢复显示SD卡文件列表
+  MainMenu.subMenus[2] = &CardMenu;	
+	MainMenu.func[2] = NULL;
+  
+  /*读取SD卡文件数目和文件名列表*/
+  card_readFileListInfo(); 
+  
+  CardMenu.itemCount = totgconum;
+  CardMenu.parent = &MainMenu;
+  CardMenu.displayUpdate_f = &lcd_displayUpdate_cardMenu;
+  
 	CurrentMenu = &CardMenu; //插入了SD卡
+  lcdDisplayUpdate = 1;
 }
 
 //开启SD卡文件打印进程
 void lcd_cardPrinting()
 {
-	uint8_t *fnn;
-//	fnn = (u8 *)(CardMenu.menuItems[CardMenu.selected]); //读取当前打印文件的文件名
-	fnn = (u8 *)(cardFileList[CardMenu.selected]); //读取当前打印文件的文件名
-	strcpy((char *) printingFilename,(const char*)fnn);  //先将文件名存储到字符串数组中，若不这样在状态界面显示文件名时会存在bug（存储在StatusMenu.menuItems[0]中的文件名在处于加热状态时会变成后面隔一个文件之后的文件的文件名），尚不清楚原因。
-	StatusMenu.menuItems[0] = (uint8_t *)printingFilename; //将文件名存储到状态菜单条目中，用于显示当前打印文件名	
-	//执行打印，有待于进一步理解与改进
-				card_initsd();
-				card_openFile((char *)fnn,true);
-				card_startFileprint();
-				starttime=millis();
-	
-//  CurrentMenu = &PrintingOptionsMenu;	
+	  //2018/4/12 (待测试) (测试成功)
+// uint8_t * fnn = CardMenu.dynamicMenuItems[CardMenu.selected];
+  uint8_t * fnn = cardFileNameList[CardMenu.selected];
+  strcpy((char *)printingFilename, (const char *)fnn);
+  StatusMenu.menuItems[0] = (uint8_t *)printingFilename;
+  
+  //执行打印，有待于进一步理解与改进
+  card_initsd();
+  card_openFile((char *)fnn,true);
+  card_startFileprint();
+  starttime=millis();
+		
 	CurrentMenu = &StatusMenu;
 	lcdDisplayUpdate = 1; //切换菜单后要将显示更新标志位置位，用于使当前菜单更新到切换的菜单
-	CurrentMenu->displayUpdate_f();
+	//CurrentMenu->displayUpdate_f();
 }
 
 //暂停打印进程还是继续打印进程
@@ -429,7 +463,7 @@ void lcd_stopPrintingOrNot(void)
 	YesOrNoMenu.menuItems[2] = "YES           ";
 	YesOrNoMenu.menuItems[3] = "NO            ";
 	YesOrNoMenu.func[2] = &lcd_stopPrinting;
-	YesOrNoMenu.subMenus[3] = &PrintingOptionsMenu; //2017.3.14选择NO直接将子菜单指向到父菜单，不知这样可不可行，晚上测试一下，如果可行就可以省略掉选择NO的功能函数了 
+	YesOrNoMenu.subMenus[3] = &PrintingOptionsMenu;  
     CurrentMenu = &YesOrNoMenu;
 	lcdDisplayUpdate = 1; //切换菜单后要将显示更新标志位置位，用于使当前菜单更新到切换的菜单
 	CurrentMenu->displayUpdate_f();
@@ -445,8 +479,6 @@ void lcd_stopPrinting()
 
 	autotempShutdown();
 	setTargetHotend(0,active_extruder);
-	//heater_0_temp = 0;
-	//bed_temp = 0;
 
 	disable_x(); 
 	disable_y(); 
@@ -460,50 +492,7 @@ void lcd_stopPrinting()
 	CurrentMenu->displayUpdate_f();
 }
 
-//改变打印速度
-void lcd_changePrintingSpeed(void)
-{
-	char tempStr[16];
-	ChangeParameterMenu.menuItems[0] = "  Change Speed  ";
-	sprintf(tempStr,"Speed:%d%%",temp_feedMultiply );
-	ChangeParameterMenu.menuItems[1] = (uint8_t *)tempStr;
-	ChangeParameterMenu.menuItems[2] = "                ";
-	ChangeParameterMenu.menuItems[3] = "by up/down key  ";
-	ChangeParameterMenu.displayUpdate_f = &lcd_displayUpdate_changeParameterMenu_speed;
-	CurrentMenu = &ChangeParameterMenu;
-	lcdDisplayUpdate = 1;
-	CurrentMenu->displayUpdate_f();
-}
-//改变打印温度
-void lcd_changePrintingTemp(void)
-{
-	char tempStr[16];
-	ChangeParameterMenu.menuItems[0] = "  Change Temp  ";
-	sprintf(tempStr,"Temp : %ddeg",temp_e0TargetTemp );
-	ChangeParameterMenu.menuItems[1] = (uint8_t *)tempStr;
-	ChangeParameterMenu.menuItems[2] = "                ";
-	ChangeParameterMenu.menuItems[3] = "by up/down key  ";
-	ChangeParameterMenu.displayUpdate_f = &lcd_displayUpdate_changeParameterMenu_temp;
-	CurrentMenu = &ChangeParameterMenu;
-	lcdDisplayUpdate = 1;
-	CurrentMenu->displayUpdate_f();
-}
-////调整参数
-//void lcd_changeParam(void)
-//{
-//	char temp_diff[16];
-//	char temp_speed[16];
-//	char temp_temp[16];
-//	char temp_fanSpeed[16];
-//	sprintf(temp_diff,"Diff  :  %d%%",feedMultiply );
-//	ChangeParamMenu.menuItems[0] = (uint8_t *)temp_diff;
-//	sprintf(temp_speed,"Speed  :  %d%%",feedMultiply );
-//	ChangeParamMenu.menuItems[1] = (uint8_t *)temp_speed;
-//	sprintf(temp_temp,"Temp_E0  :  %d%%",target_temperature[0] );
-//	ChangeParamMenu.menuItems[2] = (uint8_t *)temp_temp;
-//	sprintf(temp_fanSpeed,"FanSpeed  :  %d%%",fanSpeed );
-//	ChangeParamMenu.menuItems[3] = (uint8_t *)temp_fanSpeed;
-//}
+#endif
 
 //更换打印耗材
 void lcd_changePrintingFilament(void)
@@ -512,7 +501,7 @@ void lcd_changePrintingFilament(void)
 
 }
 
-
+#ifdef SDSUPPORT
 
 //断电重新上电后是否恢复先前的打印进程
 void lcd_poweroff_recoverPrintingOrNot(void)
@@ -539,6 +528,7 @@ void lcd_poweroff_recoverPrintingOrNot(void)
 		CurrentMenu->displayUpdate_f();
 	}
 }
+
 //恢复断电之前的打印进程
 void lcd_poweroff_recoverPrinting(void) //断电续打
 {
@@ -567,26 +557,29 @@ void lcd_poweroff_stopPrinting(void) //不再续打
 	CurrentMenu = &MainMenu;
 	lcdDisplayUpdate = 1; //切换菜单后要将显示更新标志位置位，用于使当前菜单更新到切换的菜单
 }
+#endif
 
 //屏幕菜单初始化
 void lcd_menuInit()
 {
-	uint8_t i;
-	
 	welcome_screen(); //初始化欢迎界面
-	
-	/*读取SD卡文件数目和文件名列表*/
-	card_readFileListInfo(); //必须先执行否则CardMenu菜单初始化会有问题
+  
 	/**********************一级菜单*********************/
-	MainMenu.subMenus = mymalloc(sizeof(&MainMenu)*3);
+	MainMenu.subMenus = mymalloc(sizeof(&MainMenu)*4);
 	MainMenu.subMenus[0] = &PrepareMenu;
 	MainMenu.subMenus[1] = &ControlMenu;
-	MainMenu.subMenus[2] = &CardMenu;
+//  #ifdef SDSUPPORT
+//	MainMenu.subMenus[2] = &CardMenu;
+//  #else
+//  MainMenu.subMenus[2] = NULL;
+//  #endif
+  MainMenu.subMenus[3] = NULL;
 	MainMenu.parent = NULL;
-	MainMenu.func = mymalloc(sizeof(NULL)*3);
-	MainMenu.func[0] = NULL;//&lcd_productInfo;
+	MainMenu.func = mymalloc(sizeof(NULL)*4);
+	MainMenu.func[0] = NULL;
 	MainMenu.func[1] = NULL;
-	MainMenu.func[2] = NULL;
+	//MainMenu.func[2] = NULL;
+  MainMenu.func[3] = &lcd_productInfo;
 	MainMenu.displayUpdate_f = &lcd_displayUpdate_general;
 	/**********************二级菜单*********************/
 	PrepareMenu.subMenus = mymalloc(sizeof(&PrepareMenu)*7);
@@ -596,7 +589,7 @@ void lcd_menuInit()
 	PrepareMenu.subMenus[3] =
 	PrepareMenu.subMenus[4] = NULL;
 	PrepareMenu.subMenus[5] = &MoveAxisMenu;
-	PrepareMenu.subMenus[6] = NULL;//&MainMenu; //用于返回主菜单
+	PrepareMenu.subMenus[6] = NULL;
 	PrepareMenu.parent = &MainMenu;
 	PrepareMenu.func = mymalloc(sizeof(&PrepareMenu)*7);
 	PrepareMenu.func[0] = 
@@ -606,7 +599,6 @@ void lcd_menuInit()
 	PrepareMenu.func[4] = &lcd_disableStepper;
 	PrepareMenu.func[5] = NULL;
 	PrepareMenu.func[6] = &lcd_backMainMenu;
-	//PrepareMenu.displayUpdate_f = mymalloc(sizeof(&PrepareMenu));
 	PrepareMenu.displayUpdate_f = &lcd_displayUpdate_general;
 	
 	ControlMenu.subMenus = mymalloc(sizeof(&ControlMenu)*6);
@@ -624,36 +616,29 @@ void lcd_menuInit()
 	ControlMenu.func[3] = NULL;
 	ControlMenu.func[4] = &lcd_configResetDefault;
 	ControlMenu.func[5] = &lcd_backMainMenu;//
-	//ControlMenu.displayUpdate_f = mymalloc(sizeof(&ControlMenu));
 	ControlMenu.displayUpdate_f = &lcd_displayUpdate_general;
-	
-	CardMenu.subMenus = mymalloc(sizeof(&CardMenu)*totgconum);
-	for(i=0;i<totgconum;i++)
-	{
-		CardMenu.subMenus[i] = NULL;
-	}
-	CardMenu.parent = &MainMenu;
-	CardMenu.func = mymalloc(sizeof(&CardMenu)*totgconum);
-	for(i=0;i<totgconum;i++)
-	{
-		CardMenu.func[i] = &lcd_cardPrinting;
-	}
-	//CardMenu.displayUpdate_f = (void (*)())mymalloc(sizeof(&CardMenu));
-	CardMenu.displayUpdate_f = &lcd_displayUpdate_cardMenu;
+
+  #ifdef SDSUPPORT   
+  if(SD_CD)  //未插入SD卡
+  {
+    
+    MainMenu.subMenus[2] = NULL;	
+		MainMenu.func[2] = &lcd_noCard;
+  }
+  else
+  {
+     MainMenu.subMenus[2] = &CardMenu;	
+		 MainMenu.func[2] = NULL;
+    /*读取SD卡文件数目和文件名列表*/
+	  card_readFileListInfo(); 
+    
+    CardMenu.itemCount = totgconum;
+    CardMenu.parent = &MainMenu;
+    CardMenu.displayUpdate_f = &lcd_displayUpdate_cardMenu;
+  }
+  #endif
+
 	/**********************三级菜单*********************/
-//	MoveDistanceMenu.subMenus = mymalloc(sizeof(&MoveDistanceMenu)*4);
-//	MoveDistanceMenu.subMenus[0] = NULL;
-//	MoveDistanceMenu.subMenus[1] = &MoveAxisMenu;
-//	MoveDistanceMenu.subMenus[2] = &MoveAxisMenu;
-//	MoveDistanceMenu.subMenus[3] = &MoveAxisMenu;//NULL;
-//	MoveDistanceMenu.parent = &PrepareMenu;
-//	MoveDistanceMenu.func = mymalloc(sizeof(NULL)*4);
-//	MoveDistanceMenu.func[0] = NULL;
-//	MoveDistanceMenu.func[1] = NULL;
-//	MoveDistanceMenu.func[2] = NULL;
-//	MoveDistanceMenu.func[3] = NULL;
-//	MoveDistanceMenu.displayUpdate_f = &lcd_displayUpdate_general;
-	
 	TemperatureMenu.subMenus = mymalloc(sizeof(&TemperatureMenu)*9);
 	TemperatureMenu.subMenus[0] = 
 	TemperatureMenu.subMenus[1] =
@@ -741,9 +726,9 @@ void lcd_menuInit()
 	MoveAxisMenu.func[3] =
 	MoveAxisMenu.func[4] =
 	MoveAxisMenu.func[5] = NULL;
-	//MoveAxisMenu.displayUpdate_f = mymalloc(sizeof(&MoveAxisMenu));
 	MoveAxisMenu.displayUpdate_f = &lcd_displayUpdate_MoveAxisMenu;
 
+#ifdef SDSUPPORT
 //打印中的屏幕菜单
 /**********************一级菜单*********************/
 	StatusMenu.subMenus = mymalloc(sizeof(&StatusMenu)*4);
@@ -772,23 +757,19 @@ void lcd_menuInit()
 	YesOrNoMenu.func[3] = NULL;//&Card_Menu;
 	YesOrNoMenu.displayUpdate_f = &lcd_displayUpdate_YesOrNotMenu;
 	
-	PrintingOptionsMenu.subMenus = mymalloc(sizeof(&PrintingOptionsMenu)*4);
+	PrintingOptionsMenu.subMenus = mymalloc(sizeof(&PrintingOptionsMenu)*5);
 	PrintingOptionsMenu.subMenus[0] = &StatusMenu;
 	PrintingOptionsMenu.subMenus[1] = NULL;
 	PrintingOptionsMenu.subMenus[2] = NULL;
 	PrintingOptionsMenu.subMenus[3] = &AdjustParameterMenu;
 	PrintingOptionsMenu.subMenus[4] = NULL;
-	PrintingOptionsMenu.subMenus[5] = NULL;
-	PrintingOptionsMenu.subMenus[6] = NULL;
 	PrintingOptionsMenu.parent = &StatusMenu;
-	PrintingOptionsMenu.func = mymalloc(sizeof(NULL)*4);
+	PrintingOptionsMenu.func = mymalloc(sizeof(NULL)*5);
 	PrintingOptionsMenu.func[0] = NULL;
 	PrintingOptionsMenu.func[1] = &lcd_printingPauseOrContinue;
 	PrintingOptionsMenu.func[2] = &lcd_stopPrintingOrNot;//lcd_stopPrinting;
-	PrintingOptionsMenu.func[3] = NULL;//&Card_Menu;
+	PrintingOptionsMenu.func[3] = NULL;
 	PrintingOptionsMenu.func[4] = &lcd_changePrintingFilament;
-	PrintingOptionsMenu.func[5] = &lcd_changePrintingSpeed;
-	PrintingOptionsMenu.func[6] = &lcd_changePrintingTemp;
 	PrintingOptionsMenu.displayUpdate_f = &lcd_displayUpdate_general;
 	
 	ChangeParameterMenu.subMenus = mymalloc(sizeof(&ChangeParameterMenu)*4);
@@ -831,7 +812,8 @@ void lcd_menuInit()
 	PrintingFinishedMenu.displayUpdate_f = &lcd_displayUpdate_printingFinishedMenu;	
 	
 	lcd_poweroff_recoverPrintingOrNot(); //检测是否有未完成打印的模型
-	//welcome_screen(); //显示5s的欢迎界面
+  #endif
+  
 	CurrentMenu = &MainMenu; //将当前菜单指向到主菜单
 	lcdDisplayUpdate = 1; //切换菜单后要将显示更新标志位置位，用于使当前菜单更新到切换的菜单
   CurrentMenu->displayUpdate_f();
@@ -841,242 +823,6 @@ void lcd_menuInit()
 //在case 1、2、3 。。。等处。按时间更新需要放在default处并加时间判断if(nextUpdateMillis < millis())。
 //如果需要更新就将屏幕更新标志位置位，即lcdDisplayUpdate = 1；待后面的显示更新操作处理。
 
-
-//SD卡菜单下的显示更新（纯按键操作更新无需依据时间更新）
-void lcd_displayUpdate_cardMenu(void)
-{
-	uint8_t i;
-	uint8_t m;
-	static uint8_t n = 0;
-	uint8_t lineSeclected; //当前选中的行
-	char seclected_filename[32];
-	char temp_string[32];
-	//char temp_string2[32];
-	//处理按键消息
-	switch(keyPressed)  //keyPressed（按下的键值） 由定时中断扫描获得
-	{
-		case 1://上移
-			keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-			if(CurrentMenu->selected == 0) //上移到顶级向上翻页（翻到尾页）
-			{
-				CurrentMenu->selected = CurrentMenu->itemCount-1;
-				CurrentMenu->range_to = CurrentMenu->selected;
-				CurrentMenu->range_from = CurrentMenu->range_to-2;
-				lcdDisplayUpdate = 1; //屏幕显示更新标记置位
-				break;
-			}
-			else //逐行上翻
-			{
-				CurrentMenu->selected--;
-				if(CurrentMenu->selected < CurrentMenu->range_from)
-				{
-					CurrentMenu->range_from = CurrentMenu->selected;
-					CurrentMenu->range_to = CurrentMenu->range_from+2;
-				}
-				lcdDisplayUpdate = 1; //屏幕显示更新标记置位
-				break;
-			}
-			case 2: //下移
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-			if(CurrentMenu->selected == CurrentMenu->itemCount-1) //下移到顶向下翻页（翻到首页）
-			{	
-			  CurrentMenu->selected = 0;
-				CurrentMenu->range_from = CurrentMenu->selected;
-				CurrentMenu->range_to = CurrentMenu->range_from+2;
-				lcdDisplayUpdate = 1; //屏幕显示更新标记置位
-				break;
-			}
-			else
-			{
-				CurrentMenu->selected++;
-				if(CurrentMenu->selected > CurrentMenu->range_to)
-				{
-					CurrentMenu->range_to = CurrentMenu->selected;
-					CurrentMenu->range_from = CurrentMenu->range_to-2;
-				}
-				lcdDisplayUpdate = 1; //屏幕显示更新标记置位
-				break;
-			}
-			case 3://返回键
-			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-				if(CurrentMenu->parent!=NULL)//父菜单不为空，将显示父菜单
-			  {
-				  //退出菜单时，将当前菜单的选中项清零,并将显示范围调整到初始化状态
-			      CurrentMenu->selected = 0; 
-				  CurrentMenu->range_from = 0; 
-				  CurrentMenu->range_to = 2;
-				  
-				  CurrentMenu = CurrentMenu->parent;
-			      lcdDisplayUpdate = 1; //屏幕显示更新标记置位
-				  return;
-			  }
-			 break;
-			}
-			case 4: //进入下一级菜单
-			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-//				if(CurrentMenu->subMenus[CurrentMenu->selected] != NULL)
-//				{
-//					CurrentMenu = CurrentMenu->subMenus[CurrentMenu->selected];
-//					lcdDisplayUpdate = 1; //屏幕显示更新标记置位
-//				}
-				break;
-			}
-			case 5: //确认键
-			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-				if(CurrentMenu->subMenus[CurrentMenu->selected] != NULL)
-				{
-					CurrentMenu = CurrentMenu->subMenus[CurrentMenu->selected];
-					lcdDisplayUpdate = 1; //屏幕显示更新标记置位
-					CurrentMenu->displayUpdate_f();
-				}
-				else
-				{
-					if(CurrentMenu->func[CurrentMenu->selected] != NULL)
-					{
-						CurrentMenu->func[CurrentMenu->selected]();//执行相应的函数
-//						lcdDisplayUpdate = 1; //屏幕显示更新标记置位  //不去掉会以当前形式更新下一级菜单，致使显示bug
-					}
-				}
-				break;
-			}
-			
-			default:
-			  break;
-	}
-	//更新LCD屏幕上显示的条目内容及选中行的标记
-	if(1 == lcdDisplayUpdate) //按键更新标记
-	{
-		lcdDisplayUpdate = 0; //屏幕显示更新标记清零
-		
-		LCD12864_Clear();
-		LCD12864_ShowString(0,0,CurrentMenu->title);
-		for(i=1;i<4;i++)
-		{
-			if(strlen((const char *)CurrentMenu->menuItems[i-1+CurrentMenu->range_from])>14) //超出显示范围显示部分内容
-			{
-				strncpy((char *)temp_string,(const char *)CurrentMenu->menuItems[i-1+CurrentMenu->range_from],14);
-			  LCD12864_ShowString(i,1,(uint8_t *)temp_string);
-			}
-			else //未超出显示范围全部显示
-			{
-			  LCD12864_ShowString(i,1,CurrentMenu->menuItems[i-1+CurrentMenu->range_from]);
-			}
-		}
-		lineSeclected = CurrentMenu->selected; //读取当前菜单的选中的条目号
-		lineSeclected = 3-(CurrentMenu->range_to - lineSeclected);	//转化位适合屏幕显示的当前选中行
-        LCD12864_ShowString(lineSeclected,0,"→");	//为当前选中的行绘制选中标记
-		//LCD12864_HightlightShow(0,0,16,1);
-		//选中行文件名显示不下滚动显示
-		if(strlen((const char *)CurrentMenu->menuItems[CurrentMenu->selected])>14)
-		{
-			strcpy(seclected_filename,(const char *)CurrentMenu->menuItems[CurrentMenu->selected]);
-			for(m=0;m<14;m++)
-			{
-				temp_string[m] = seclected_filename[m+n];
-			}
-			n++;
-			if(n>(strlen(seclected_filename)-14))
-			{
-				n = 0;
-			}
-			LCD12864_ShowString(lineSeclected,1,(uint8_t *)temp_string);
-            			
-		}	
-	}
-}
-
-//状态菜单下的显示更新（包括按键操作更新和超时更新）
-void lcd_displayUpdate_statusMenu(void)
-{
-	uint8_t i;
-	uint8_t m;
-	static uint8_t n = 0;
-	char temp_string[32];
-//	uint8_t lineSeclected; //当前选中的行
-	//处理按键消息
-	switch(keyPressed)  //keyPressed（按下的键值） 由外部中断获得
-	{
-		case 1://上移
-		case 2: //下移
-		case 3://返回键
-		case 4: //进入下一级菜单
-			keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-			break;
-		case 5: //确认键
-			keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-		    CurrentMenu = &PrintingOptionsMenu;
-		    lcdDisplayUpdate = 1; //切换菜单后要将显示更新标志位置位，用于使当前菜单更新到切换的菜单
-		    CurrentMenu->displayUpdate_f();
-			break;			
-		default:
-			if(strlen(printingFilename) > 16) //实现单行显示字符超过16个滚动显示
-			{
-				for(m=0;m<16;m++)
-				{
-					temp_string[m] = printingFilename[m+n];
-				}
-				n++;
-				if(n>(strlen(printingFilename)-16))
-				{
-					n = 0;
-				}
-				StatusMenu.menuItems[0] = (uint8_t *)temp_string;
-			}
-			sprintf(percentDone,"percentDone:%d%%",card_percentDone());
-			//sprintf(percentDone," %d ",f_tell(&card.fgcode)); //测试，文件读取到的位置。
-			StatusMenu.menuItems[1] = (uint8_t *)percentDone;
-			sprintf(temperature0," T0   :  %d/%d",(int)degHotend(0),(int)degTargetHotend(0));
-			StatusMenu.menuItems[2] = (uint8_t *)temperature0;
-			sprintf(temperatureBed," BED  :  %d/%d",(int)degBed(),(int)degTargetBed());
-			StatusMenu.menuItems[3] = (uint8_t *)temperatureBed;
-			break;
-	}
-	//更新LCD屏幕上显示的条目内容及选中行的标记
-	if(1 == lcdDisplayUpdate) //按键更新标记
-	{
-		lcdDisplayUpdate = 0; //屏幕显示更新标记清零
-		LCD12864_Clear();
-		for(i=0;i<4;i++)
-		{
-			LCD12864_ShowString(i,0,CurrentMenu->menuItems[i+CurrentMenu->range_from]);
-		}
-	}
-}
-//打印完成后菜单的显示更新（纯按键操作更新无需依据时间更新）
-void lcd_displayUpdate_printingFinishedMenu(void)
-{
-	uint8_t i;
-	//处理按键消息
-	switch(keyPressed)  //keyPressed（按下的键值） 由外部中断获得
-	{
-		case 1://上移
-		case 2: //下移
-		case 3://返回键
-		case 4: //进入下一级菜单
-		case 5: //确认键
-			keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-		    CurrentMenu = &MainMenu;
-		    lcdDisplayUpdate = 1; //切换菜单后要将显示更新标志位置位，用于使当前菜单更新到切换的菜单
-		    CurrentMenu->displayUpdate_f();
-			break;	
-		default:
-      //为打印完成的菜单条目的赋值是在get_commond()函数内完成的。
-			break;
-  }
-	//更新LCD屏幕上显示的条目内容及选中行的标记
-	if(1 == lcdDisplayUpdate) //按键更新标记
-	{
-		lcdDisplayUpdate = 0; //屏幕显示更新标记清零
-		LCD12864_Clear();
-		for(i=0;i<4;i++)
-		{
-			LCD12864_ShowString(i,0,CurrentMenu->menuItems[i+CurrentMenu->range_from]);
-		}
-	}
-}
 
 //确认与否菜单的显示更新函数（纯按键操作更新无需依据时间更新）
 void lcd_displayUpdate_YesOrNotMenu(void)
@@ -1191,16 +937,24 @@ void lcd_displayUpdate_YesOrNotMenu(void)
 	}
 }
 
+/*
+*  修改日期：2018/4/12
+*  1.创建新的局部变量接收按下的键值消息，调整了键值清零的位置，减少的重复清零
+*  2.定义按键按下的宏，监测宏的形式判定是哪个按键按下，写程序时更加清楚是哪个按键。
+*  3.以return替代CurrentMenu->displayUpdate_f()函数。
+*/
 //一般性的显示更新函数（纯按键操作更新无需依据时间更新）
 void lcd_displayUpdate_general(void)
 {
-	uint8_t i;
 	uint8_t lineSeclected; //当前选中的行
-	//处理按键消息
-	switch(keyPressed)  //keyPressed（按下的键值） 由外部中断获得
+  uint8_t keyMsg = keyPressed;  //记录按下的键值
+  
+  keyPressed = 0; //按下的键值清零
+	
+  //处理按键消息
+	switch(keyMsg)  //keyPressed（按下的键值） 由外部中断获得
 	{
-		case 1://上移
-			keyPressed = 0; //按下的键值清零，否则回一直执行该状态
+		case KEY_UP_PRESSED: //选中标记上移
 			if(CurrentMenu->selected <= 0)
 				break;
 			else
@@ -1214,8 +968,7 @@ void lcd_displayUpdate_general(void)
 				lcdDisplayUpdate = 1;
 				break;
 			}
-			case 2: //下移
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
+			case KEY_DOWN_PRESSED: //选中标记下移
 			if(CurrentMenu->selected == CurrentMenu->itemCount-1)
 				break;
 			else
@@ -1229,50 +982,52 @@ void lcd_displayUpdate_general(void)
 				lcdDisplayUpdate = 1;
 				break;
 			}
-			case 3://返回键
-			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-				//退出菜单时，将当前菜单的选中项清零,并将显示范围调整到初始化状态
-			    CurrentMenu->selected = 0; 
-				CurrentMenu->range_from = 0; 
-				CurrentMenu->range_to = 2;
-				
+			case KEY_LEFT_PRESSED: //返回上一级菜单
+			{ 
 				if(CurrentMenu->parent!=NULL)//父菜单不为空，将显示父菜单
 			  {
-			    CurrentMenu = CurrentMenu->parent;
+          //退出菜单时，将当前菜单的选中项清零,并将显示范围调整到初始化状态
+          CurrentMenu->selected = 0; 
+          CurrentMenu->range_from = 0; 
+          CurrentMenu->range_to = 2;
+          
+			    LCD12864_Clear(); //清屏处理（菜单跳转之前应清屏一次，以完全去除上次菜单的影响）
+          CurrentMenu = CurrentMenu->parent;
 			    lcdDisplayUpdate = 1;
-			    CurrentMenu->displayUpdate_f();
+			    //CurrentMenu->displayUpdate_f();
+          return;  //（待测试）
 			  }
-				lcdDisplayUpdate = 1;
 			 break;
 			}
-			case 4: //进入下一级菜单
+			case KEY_RIGHT_PRESSED: //进入下一级菜单
 			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
 				if(CurrentMenu->subMenus[CurrentMenu->selected] != NULL)
 				{
-					CurrentMenu = CurrentMenu->subMenus[CurrentMenu->selected];
+					LCD12864_Clear(); //清屏处理（菜单跳转之前应清屏一次，以完全去除上次菜单的影响）
+          CurrentMenu = CurrentMenu->subMenus[CurrentMenu->selected];
 					lcdDisplayUpdate = 1;
-					CurrentMenu->displayUpdate_f();
+					//CurrentMenu->displayUpdate_f();
+          return;
 				}
 
 				break;
 			}
 			case 5: //确认键
 			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
 				if(CurrentMenu->subMenus[CurrentMenu->selected] != NULL)
 				{
-					CurrentMenu = CurrentMenu->subMenus[CurrentMenu->selected];
+          LCD12864_Clear(); //清屏处理（菜单跳转之前应清屏一次，以完全去除上次菜单的影响）
+          CurrentMenu = CurrentMenu->subMenus[CurrentMenu->selected];
 					lcdDisplayUpdate = 1;
-					CurrentMenu->displayUpdate_f();
+					//CurrentMenu->displayUpdate_f();
+          return;
 				}
 				else
 				{
 					if(CurrentMenu->func[CurrentMenu->selected] != NULL)
 					{
 						CurrentMenu->func[CurrentMenu->selected]();//执行相应的函数
-						//lcdDisplayUpdate = 1;
+            return;
 					}
 				}
 				break;
@@ -1281,20 +1036,25 @@ void lcd_displayUpdate_general(void)
 			default:
 			break;
 	}
+  
 	//更新LCD屏幕上显示的条目内容及选中行的标记
 	if(1 == lcdDisplayUpdate) //按键更新标记
 	{
 		lcdDisplayUpdate = 0; //屏幕显示更新标记清零
-		LCD12864_Clear();
+    
+    LCD12864_ShowString(0,0,"                ");
 		LCD12864_ShowString(0,0,CurrentMenu->title);
-		for(i=1;i<4;i++)
+		
+    for(uint8_t i=1;i<4;i++)
 		{
+      LCD12864_ShowString(i,0,"               ");
 			LCD12864_ShowString(i,0,CurrentMenu->menuItems[i-1+CurrentMenu->range_from]);
 		}
+    
+    /*将选中的条目号转化为适合屏幕显示的行号，并绘制选中标记*/
 		lineSeclected = CurrentMenu->selected; //读取当前菜单的选中的条目号
-		lineSeclected = 3-(CurrentMenu->range_to - lineSeclected);	//转化位适合屏幕显示的当前选中行
-    //LCD12864_ShowString(lineSeclected,0,"->");	//为当前选中的行绘制选中标记	
-		LCD12864_HightlightShow(lineSeclected,0,16,1);
+		lineSeclected = 3-(CurrentMenu->range_to - lineSeclected);	//转化位适合屏幕显示的当前选中行	
+		LCD12864_HightlightShow(lineSeclected,0,16,1); //选中行反白显示
 	}
 }
 
@@ -1303,18 +1063,8 @@ void lcd_displayUpdate_MoveAxisMenu(void)
 	uint8_t i;
 	uint8_t lineSeclected; //当前选中的行
 	static float move_menu_scale = 10;
-//	if(CurrentMenu->parent->selected == 1) //建立父菜单选中项和移动缩放因子的关联
-//	{
-//		move_menu_scale = 0.1;
-//	}
-//	else if(CurrentMenu->parent->selected == 2)
-//	{
-//		move_menu_scale = 1;
-//	}
-//	else if(CurrentMenu->parent->selected == 3)
-//	{
-//		move_menu_scale = 10;
-//	}
+  float manual_feedrate[4] = {50*60,50*60,15*60,60};
+
 	//处理按键消息
 	switch(keyPressed)  //keyPressed（按下的键值） 由外部中断获得
 	{
@@ -1368,14 +1118,14 @@ void lcd_displayUpdate_MoveAxisMenu(void)
 					break;
 				}
 				current_position[CurrentMenu->selected - 1] -= 1 * move_menu_scale; //建立菜单标号(CurrentMenu->selected)与轴号（X_AXIS）的关联
-				plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], manual_feedrate[Y_AXIS]/60, active_extruder);
-//				if(CurrentMenu->parent!=NULL)//父菜单不为空，将显示父菜单
-//			  {
-//			    CurrentMenu = CurrentMenu->parent;
-//			    lcdDisplayUpdate = 1;
-//					CurrentMenu->displayUpdate_f();
-//			  }
-//				lcdDisplayUpdate = 1;
+				if (min_software_endstops && current_position[X_AXIS] < X_MIN_POS)
+            current_position[X_AXIS] = X_MIN_POS; 
+        if (min_software_endstops && current_position[Y_AXIS] < Y_MIN_POS)
+            current_position[Y_AXIS] = Y_MIN_POS; 
+        if (min_software_endstops && current_position[Z_AXIS] < Z_MIN_POS)
+            current_position[Z_AXIS] = Z_MIN_POS; 
+        plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], manual_feedrate[CurrentMenu->selected - 1]/60, active_extruder);
+        
 			 break;
 			}
 			case 4: //进入下一级菜单
@@ -1398,15 +1148,14 @@ void lcd_displayUpdate_MoveAxisMenu(void)
 					break;
 				}
 				/*建立当前菜单标号(CurrentMenu->selected)与轴号（X_AXIS）的关联*/
-				current_position[CurrentMenu->selected - 1] += 1 * move_menu_scale; 
-				plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], manual_feedrate[Y_AXIS]/60, active_extruder);
-
-//				if(CurrentMenu->subMenus[CurrentMenu->selected] != NULL)
-//				{
-//					CurrentMenu = CurrentMenu->subMenus[CurrentMenu->selected];
-//					lcdDisplayUpdate = 1;
-//				}
-
+				current_position[CurrentMenu->selected - 1] += 1 * move_menu_scale;  
+        if (max_software_endstops && current_position[X_AXIS] > X_MAX_POS)
+            current_position[X_AXIS] = X_MAX_POS;
+        if (max_software_endstops && current_position[Y_AXIS] > Y_MAX_POS)
+            current_position[Y_AXIS] = Y_MAX_POS;
+        if (max_software_endstops && current_position[Z_AXIS] > Z_MAX_POS)
+            current_position[Z_AXIS] = Z_MAX_POS;
+        plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], manual_feedrate[CurrentMenu->selected - 1]/60, active_extruder);
 				break;
 			}
 			case 5: //确认键
@@ -1420,19 +1169,6 @@ void lcd_displayUpdate_MoveAxisMenu(void)
 				  return;
 			  }
 				lcdDisplayUpdate = 1;
-//				if(CurrentMenu->subMenus[CurrentMenu->selected] != NULL)
-//				{
-//					CurrentMenu = CurrentMenu->subMenus[CurrentMenu->selected];
-//					lcdDisplayUpdate = 1;
-//				}
-//				else
-//				{
-//					if(CurrentMenu->func[CurrentMenu->selected] != NULL)
-//					{
-//						CurrentMenu->func[CurrentMenu->selected]();//执行相应的函数
-//						lcdDisplayUpdate = 1;
-//					}
-//				}
 				break;
 			}
 			
@@ -1443,34 +1179,254 @@ void lcd_displayUpdate_MoveAxisMenu(void)
 	if(1 == lcdDisplayUpdate) //按键更新标记
 	{
 		lcdDisplayUpdate = 0; //屏幕显示更新标记清零
-		LCD12864_Clear();
+    
+    LCD12864_ShowString(0,0,"               ");
 		LCD12864_ShowString(0,0,CurrentMenu->title);
 		for(i=1;i<4;i++)
 		{
+      LCD12864_ShowString(i,0,"               ");
 			LCD12864_ShowString(i,0,CurrentMenu->menuItems[i-1+CurrentMenu->range_from]);
 		}
 		lineSeclected = CurrentMenu->selected; //读取当前菜单的选中的条目号
 		lineSeclected = 3-(CurrentMenu->range_to - lineSeclected);	//转化位适合屏幕显示的当前选中行
-//        LCD12864_ShowString(lineSeclected,0,"->");	//为当前选中的行绘制选中标记
-        LCD12864_HightlightShow(lineSeclected,0,16,1);		
+    LCD12864_HightlightShow(lineSeclected,0,16,1);		//为选中行绘制选中标记
+	}
+}
+
+#ifdef SDSUPPORT
+/*
+* 修改日期：2018/4/13
+* 1.修改文件名过长需滚屏显示部分的代码，目的是修正部分文件名不能完全滚动显示的bug1和选中标记指向某些文件名时会引起下一行部分显示乱码的bug2
+*   将 n += 2;语句放入if(n > (strlen(seclected_filename)-14))相应的else语句内部以修正上述bug （待测试）
+*/
+//SD卡菜单下的显示更新（纯按键操作更新无需依据时间更新）
+void lcd_displayUpdate_cardMenu(void)
+{
+  uint8_t keyMsg;
+	static uint8_t n = 0;
+	uint8_t lineSeclected; //当前选中的行
+	char seclected_filename[100] = {0};
+	char temp_string[32] = {0};
+  
+  keyMsg = keyPressed; //记录当前按下的键值
+  keyPressed = 0;  //按下的键值信息清零
+  
+	//处理按键消息
+	switch(keyMsg)  //keyPressed（按下的键值） 由定时中断扫描获得
+	{
+		case KEY_UP_PRESSED: //上移
+    {
+			if(CurrentMenu->selected == 0) //上移到顶级向上翻页（翻到尾页）
+			{
+				CurrentMenu->selected = CurrentMenu->itemCount-1;
+				CurrentMenu->range_to = CurrentMenu->selected;
+				CurrentMenu->range_from = CurrentMenu->range_to-2;
+      }
+      else //逐行上翻
+      {
+        CurrentMenu->selected--;
+        if(CurrentMenu->selected < CurrentMenu->range_from)
+        {
+          CurrentMenu->range_from = CurrentMenu->selected;
+          CurrentMenu->range_to = CurrentMenu->range_from+2;
+        }
+      }
+      lcdDisplayUpdate = 1; //屏幕显示更新标记置位
+      break;
+    }
+    
+		case KEY_DOWN_PRESSED: //下移
+    {
+			if(CurrentMenu->selected == CurrentMenu->itemCount-1) //下移到顶向下翻页（翻到首页）
+			{	
+			  CurrentMenu->selected = 0;
+				CurrentMenu->range_from = CurrentMenu->selected;
+				CurrentMenu->range_to = CurrentMenu->range_from+2;
+			}
+			else
+			{
+				CurrentMenu->selected++;
+				if(CurrentMenu->selected > CurrentMenu->range_to)
+				{
+					CurrentMenu->range_to = CurrentMenu->selected;
+					CurrentMenu->range_from = CurrentMenu->range_to-2;
+				}
+			}
+      lcdDisplayUpdate = 1; //屏幕显示更新标记置位
+			break;
+    }
+    
+		case KEY_LEFT_PRESSED://返回键
+    {
+      if(CurrentMenu->parent!=NULL)//父菜单不为空，将显示父菜单
+      {
+        //退出菜单时，将当前菜单的选中项清零,并将显示范围调整到初始化状态
+        CurrentMenu->selected = 0; 
+        CurrentMenu->range_from = 0; 
+        CurrentMenu->range_to = 2;
+
+        LCD12864_Clear(); //清屏处理（菜单跳转之前应清屏一次，以完全去除上次菜单的影响）
+        CurrentMenu = CurrentMenu->parent;
+        lcdDisplayUpdate = 1; //屏幕显示更新标记置位
+        return;
+       }
+			 break;
+    }
+    
+    case KEY_RIGHT_PRESSED: //进入下一级菜单
+			break;
+      
+    case KEY_MID_PRESSED: //确认键
+    {
+      lcd_cardPrinting();
+      return;
+    }
+			
+    default:
+      break;
+	}
+  
+	//更新LCD屏幕上显示的条目内容及选中行的标记
+	if(1 == lcdDisplayUpdate) //按键更新标记
+	{
+		lcdDisplayUpdate = 0; //屏幕显示更新标记清零
+    
+    LCD12864_ShowString(0,0,"                ");
+		LCD12864_ShowString(0,0,CurrentMenu->title);
+    
+		for(uint8_t i = 1; i < 4; i++)
+		{
+			if(strlen((const char *)cardFileNameList[i-1+CurrentMenu->range_from])>14) //超出显示范围显示部分内容
+			{
+				strncpy((char *)temp_string,(const char *)cardFileNameList[i-1+CurrentMenu->range_from],14);
+        LCD12864_ShowString(i,0,"                ");
+			  LCD12864_ShowString(i,1,(uint8_t *)temp_string);
+			}
+			else //未超出显示范围全部显示
+			{
+			  LCD12864_ShowString(i,0,"                ");
+        LCD12864_ShowString(i,1,cardFileNameList[i-1+CurrentMenu->range_from]);
+			}
+		}
+    
+		lineSeclected = CurrentMenu->selected; //读取当前菜单的选中的条目号
+		lineSeclected = 3-(CurrentMenu->range_to - lineSeclected);	//转化位适合屏幕显示的当前选中行
+    if(CurrentMenu->selected == CurrentMenu->itemCount - 1)
+    {
+      LCD12864_ShowString(lineSeclected,0,"》");	
+    }
+    else
+    {
+      LCD12864_ShowString(lineSeclected,0,"→");	//为当前选中的行绘制选中标记,此处若用反白显示屏幕闪烁太严重故不采用反白方式显示。
+    } 
+      
+    /*选中行文件名显示不下滚动显示*/
+		if(strlen((const char *)cardFileNameList[CurrentMenu->selected])>14)
+		{
+			strcpy(seclected_filename,(const char *)cardFileNameList[CurrentMenu->selected]);
+			for(uint8_t m = 0; m < 14; m++)
+			{
+				temp_string[m] = seclected_filename[m+n];
+			}
+			if(n > (strlen(seclected_filename)-14))
+			{
+				n = 0;
+			}
+      else 
+      {
+        n += 2;//n++;   //将两个字符作为整体可支持汉字滚动显示
+      }
+      
+      LCD12864_ShowString(lineSeclected,1,"              ");
+			LCD12864_ShowString(lineSeclected,1,(uint8_t *)temp_string);            			
+		}	
+	}
+}
+
+//状态菜单下的显示更新（包括按键操作更新和超时更新）
+void lcd_displayUpdate_statusMenu(void)
+{
+  uint8_t keyMsg;
+	static uint8_t n = 0;
+	char temp_string[32]; //为支持滚动显示，设定的临时字符串存储数组
+  char temperature0[30],temperatureBed[30]; 
+  char percentDone[30];
+
+  keyMsg = keyPressed; //记录按下的键值信息
+  keyPressed = 0;  //按下的键值信息清零
+  
+	//处理按键消息
+	switch(keyMsg)  //keyPressed（按下的键值） 由外部中断获得
+	{
+		case KEY_UP_PRESSED://上移
+		case KEY_DOWN_PRESSED: //下移
+		case KEY_LEFT_PRESSED://返回键
+		case KEY_RIGHT_PRESSED: //进入下一级菜单
+			break;
+    
+		case KEY_MID_PRESSED: //确认键
+      LCD12864_Clear(); //清屏处理
+      CurrentMenu = &PrintingOptionsMenu;
+      lcdDisplayUpdate = 1; //切换菜单后要将显示更新标志位置位，用于使当前菜单更新到切换的菜单
+      return;
+    
+		default:
+			break;
+	}
+	//更新LCD屏幕上显示的条目内容及选中行的标记
+	if(1 == lcdDisplayUpdate) //按键更新标记
+	{
+		lcdDisplayUpdate = 0; //屏幕显示更新标记清零
+    
+    if(strlen((const char *)printingFilename) > 16) //实现单行显示字符超过16个滚动显示
+    {
+      for(uint8_t m = 0; m < 16; m++)
+      {
+        temp_string[m] = printingFilename[m+n];
+      }
+      
+      if( n > (strlen((const char *)printingFilename)-16))
+      {
+        n = 0;
+      }
+      else
+      {
+        n += 2; //n++;  //将两个字符作为整体可支持汉字滚动显示
+      }
+      StatusMenu.menuItems[0] = (uint8_t *)temp_string;
+    }
+    sprintf(percentDone,"percentDone:%d%%",card_percentDone());
+    //sprintf(percentDone," %d ",f_tell(&card.fgcode)); //测试，文件读取到的位置。 // 2018/4/13 暂时保留，后面支持断电续打可能会用到。
+    StatusMenu.menuItems[1] = (uint8_t *)percentDone;
+    sprintf(temperature0," T0   :  %d/%d",(int)degHotend(0),(int)degTargetHotend(0));
+    StatusMenu.menuItems[2] = (uint8_t *)temperature0;
+    sprintf(temperatureBed," BED  :  %d/%d",(int)degBed(),(int)degTargetBed());
+    StatusMenu.menuItems[3] = (uint8_t *)temperatureBed;
+    
+		for(uint8_t i = 0; i < 4; i++)
+		{
+      LCD12864_ShowString(i,0,"                ");
+			LCD12864_ShowString(i,0,CurrentMenu->menuItems[i+CurrentMenu->range_from]);
+		}
 	}
 }
 
 void lcd_displayUpdate_adjustParameterMenu(void)
 {
-	uint8_t i;
 	uint8_t lineSeclected; //当前选中的行
-//	uint8_t tempDiff;
 	char temp_diff[16];
 	char temp_speed[16];
 	char temp_temp[16];
 	char temp_fanSpeed[16];
+  uint8_t differenceValue = 5;
+  
+  uint8_t keyMsg = keyPressed; //记录按下的键值
+  keyPressed = 0; //按下的键值信息清零
 	
 	//处理按键消息
-	switch(keyPressed)  //keyPressed（按下的键值） 由外部中断获得
+	switch(keyMsg)  //keyPressed（按下的键值） 由外部中断获得
 	{
-		case 1://上移
-			keyPressed = 0; //按下的键值清零，否则回一直执行该状态
+		case KEY_UP_PRESSED://上移
 			if(CurrentMenu->selected == 0)
 				break;
 			else
@@ -1484,8 +1440,7 @@ void lcd_displayUpdate_adjustParameterMenu(void)
 				lcdDisplayUpdate = 1;
 				break;
 			}
-			case 2: //下移
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
+		case KEY_DOWN_PRESSED: //下移
 			if(CurrentMenu->selected == CurrentMenu->itemCount-1)
 				break;
 			else
@@ -1500,160 +1455,97 @@ void lcd_displayUpdate_adjustParameterMenu(void)
 				break;
 			}
 			//建立当前菜单的选中项与需要改变参数的关联
-			case 3:
+			case KEY_LEFT_PRESSED:
+      {
 				if(CurrentMenu->selected == 0)  //调整差值
 				{
-					keyPressed = 0;
 					differenceValue -= 1;
 					if(differenceValue <= 1) //最小值限幅
 					{
 						differenceValue = 1;
 					}
-//					sprintf(temp_diff,"DiffValue : %d",differenceValue);
-//					AdjustParameterMenu.menuItems[0] = (uint8_t *)temp_diff;
-					lcdDisplayUpdate = 1;
-//					CurrentMenu->displayUpdate_f();
-					break;
 				}
 				else if(CurrentMenu->selected == 1)
 				{
-					keyPressed = 0;
 					feedmultiply -= differenceValue;
 					if(feedmultiply <= 5) //最小值限幅
 					{
 						feedmultiply = 5;
 					}
-//					sprintf(temp_speed,"Speed : %d%%",feedmultiply );
-//					AdjustParameterMenu.menuItems[1] = (uint8_t *)temp_speed;
-					lcdDisplayUpdate = 1;
-//					CurrentMenu->displayUpdate_f();
-					break;
 				}
 				else if(CurrentMenu->selected == 2)
 				{
-					keyPressed = 0;
 					target_temperature[0] -= differenceValue;
-					if(target_temperature[0] <= 0) //最小值限幅
+					if(target_temperature[0] <= 170) //最小值限幅   //打印过程中喷头温度不能低于170℃
 					{
-						target_temperature[0] = 0;
+						target_temperature[0] = 170;
 					}
-//					sprintf(temp_temp,"Temp_E0:%ddeg",target_temperature[0] );
-//					AdjustParameterMenu.menuItems[2] = (uint8_t *)temp_temp;
-					lcdDisplayUpdate = 1;
-//					CurrentMenu->displayUpdate_f();
-					break;
 				}
 				else if(CurrentMenu->selected == 3)
 				{
-					keyPressed = 0;
 					fanSpeed -= differenceValue;
 					if(fanSpeed <= 0) //最小值限幅
 					{
 						fanSpeed = 0;
 					}
-//					sprintf(temp_fanSpeed,"FanSpeed : %d%%",fanSpeed );
-//					AdjustParameterMenu.menuItems[3] = (uint8_t *)temp_fanSpeed;
-					lcdDisplayUpdate = 1;
-//					CurrentMenu->displayUpdate_f();
-					break;
 				}
-				//break;
-			case 4:
+        /* 此部分为公共代码，写到此处不必每个if语句中都写一次 */
+        lcdDisplayUpdate = 1;
+				break;
+      }
+
+			case KEY_RIGHT_PRESSED:
+      {
 				if(CurrentMenu->selected == 0)
 				{
-					keyPressed = 0;
 					differenceValue += 1;
 					if(differenceValue >= 10) //最大值限幅
 					{
 						differenceValue = 10;
 					}
-//					sprintf(temp_diff,"DiffValue : %d",differenceValue);
-//					AdjustParameterMenu.menuItems[0] = (uint8_t *)temp_diff;
-					lcdDisplayUpdate = 1;
-//					CurrentMenu->displayUpdate_f();
-					break;
 				}
 				else if(CurrentMenu->selected == 1)
 				{
-					keyPressed = 0;
 					feedmultiply += differenceValue;
 					if(feedmultiply >= 500) //最大值限幅
 					{
 						feedmultiply = 500;
 					}
-//					sprintf(temp_speed,"Speed : %d%%",feedmultiply );
-//					AdjustParameterMenu.menuItems[1] = (uint8_t *)temp_speed;
-					lcdDisplayUpdate = 1;
-//					CurrentMenu->displayUpdate_f();
-					break;
 				}
 				else if(CurrentMenu->selected == 2)
 				{
-					keyPressed = 0;
 					target_temperature[0] += differenceValue;
 					if(target_temperature[0] >= HEATER_0_MAXTEMP - 15) //最小值限幅
 					{
 						target_temperature[0] = HEATER_0_MAXTEMP - 15;
 					}
-//					sprintf(temp_temp,"Temp_E0  :  %d%%",target_temperature[0] );
-//					AdjustParameterMenu.menuItems[2] = (uint8_t *)temp_temp;
-					lcdDisplayUpdate = 1;
-//					CurrentMenu->displayUpdate_f();
-					break;
 				}
 				else if(CurrentMenu->selected == 3)
 				{
-					keyPressed = 0;
 					fanSpeed += differenceValue;
 					if(fanSpeed >= 255) //最小值限幅
 					{
 						fanSpeed = 255;
 					}
-//					sprintf(temp_fanSpeed,"FanSpeed  :  %d%%",fanSpeed );
-//					AdjustParameterMenu.menuItems[3] = (uint8_t *)temp_fanSpeed;
-					lcdDisplayUpdate = 1;
-//					CurrentMenu->displayUpdate_f();
-					break;
 				}
-			case 5: //确认键
-			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-				//退出菜单时，将当前菜单的选中项清零,并将显示范围调整到初始化状态
-			    CurrentMenu->selected = 0; 
-				CurrentMenu->range_from = 0; 
-				CurrentMenu->range_to = 3;
-				
+        /* 此部分为公共代码，写到此处不必每个if语句中都写一次 */
+        lcdDisplayUpdate = 1;
+				break;
+      }
+			case KEY_MID_PRESSED: //确认键
+			{				
 				if(CurrentMenu->parent!=NULL)//父菜单不为空，将显示父菜单
 				{
-					CurrentMenu = CurrentMenu->parent;
+					//退出菜单时，将当前菜单的选中项清零,并将显示范围调整到初始化状态
+          CurrentMenu->selected = 0; 
+          CurrentMenu->range_from = 0; 
+          CurrentMenu->range_to = 2;
+          
+          LCD12864_Clear();
+          CurrentMenu = CurrentMenu->parent;
 					lcdDisplayUpdate = 1;
-					CurrentMenu->displayUpdate_f();
 					return;
-		        }
-				lcdDisplayUpdate = 1;
-			    break;
-//				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-//				if(CurrentMenu->parent!=NULL)//父菜单不为空，将显示父菜单
-//			  {
-//			    CurrentMenu = CurrentMenu->parent;
-//			    lcdDisplayUpdate = 1;
-//					CurrentMenu->displayUpdate_f();
-//			  }
-//				lcdDisplayUpdate = 1;
-//				if(CurrentMenu->subMenus[CurrentMenu->selected] != NULL)
-//				{
-//					CurrentMenu = CurrentMenu->subMenus[CurrentMenu->selected];
-//					lcdDisplayUpdate = 1;
-//				}
-//				else
-//				{
-//					if(CurrentMenu->func[CurrentMenu->selected] != NULL)
-//					{
-//						CurrentMenu->func[CurrentMenu->selected]();//执行相应的函数
-//						lcdDisplayUpdate = 1;
-//					}
-//				}
-//				break;
+		     }
 			}
 			
 			default:
@@ -1663,7 +1555,8 @@ void lcd_displayUpdate_adjustParameterMenu(void)
 	if(1 == lcdDisplayUpdate) //按键更新标记
 	{
 		lcdDisplayUpdate = 0; //屏幕显示更新标记清零
-        sprintf(temp_diff,"←-Diff+→  %d",differenceValue);
+    
+    sprintf(temp_diff,"←-Diff+→  %d",differenceValue);
 		AdjustParameterMenu.menuItems[0] = (uint8_t *)temp_diff;
 		sprintf(temp_speed,"←Speed → %d%%",feedmultiply );
 		AdjustParameterMenu.menuItems[1] = (uint8_t *)temp_speed;
@@ -1671,198 +1564,58 @@ void lcd_displayUpdate_adjustParameterMenu(void)
 		AdjustParameterMenu.menuItems[2] = (uint8_t *)temp_temp;
 		sprintf(temp_fanSpeed,"←FanSpeed→%d",fanSpeed );
 		AdjustParameterMenu.menuItems[3] = (uint8_t *)temp_fanSpeed;
-		LCD12864_Clear();
+    
+		LCD12864_ShowString(0,0,"                ");
 		LCD12864_ShowString(0,0,CurrentMenu->title);
-		for(i=1;i<4;i++)
+		for(uint8_t i = 1; i < 4; i++)
 		{
-			LCD12864_ShowString(i,0,CurrentMenu->menuItems[i-1+CurrentMenu->range_from]);
+			LCD12864_ShowString(i,0,"                ");
+      LCD12864_ShowString(i,0,CurrentMenu->menuItems[i-1+CurrentMenu->range_from]);
 		}
 		lineSeclected = CurrentMenu->selected; //读取当前菜单的选中的条目号
 		lineSeclected = 3-(CurrentMenu->range_to - lineSeclected);	//转化位适合屏幕显示的当前选中行
-        //LCD12864_ShowString(lineSeclected,0,"->");	//为当前选中的行绘制选中标记
-        LCD12864_HightlightShow(lineSeclected,0,16,1);		
+    LCD12864_HightlightShow(lineSeclected,0,16,1);	//为当前选中的行绘制选中标记	
 	}
 }
 
-void lcd_displayUpdate_changeParameterMenu_speed(void)
+
+//打印完成后菜单的显示更新（纯按键操作更新无需依据时间更新）
+void lcd_displayUpdate_printingFinishedMenu(void)
 {
-	uint8_t i;
-	static uint8_t diffValue = 5; //每次增加或减小的差值
-	char tempStr1[16];//,tempStr2[16];
-	//处理按键消息
-	switch(keyPressed)  //keyPressed（按下的键值） 由外部中断获得
-	{
-		case 1://上移
-			keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-		  temp_feedMultiply += diffValue;
-		  if(temp_feedMultiply >= 500) //最大值限幅
-			{
-				temp_feedMultiply = 500;
-			}
-		  sprintf(tempStr1,"Speed:%d%%",temp_feedMultiply );
-		  ChangeParameterMenu.menuItems[2] = (uint8_t *)tempStr1;
-		  lcdDisplayUpdate = 1;
-		  CurrentMenu->displayUpdate_f();
-			break;
-		case 2: //下移
-			keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-			temp_feedMultiply -= diffValue;
-			if(temp_feedMultiply <= 5)
-			{
-				temp_feedMultiply = 5;
-			}
-			sprintf(tempStr1,"Speed:%d%%",temp_feedMultiply );
-			ChangeParameterMenu.menuItems[2] = (uint8_t *)tempStr1;
-			lcdDisplayUpdate = 1;
-			CurrentMenu->displayUpdate_f();
-			break;
-		case 3://返回键
-			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-//			  diffValue--;
-//				if(diffValue <= 1) //差值最小值限幅
-//				{
-//					diffValue = 1;
-//				}
-//				sprintf(tempStr2,"DiffValue:%d",diffValue );
-//				ChangeParameterMenu.menuItems[3] = (uint8_t *)tempStr2;
-//				lcdDisplayUpdate = 1;
-//				CurrentMenu->displayUpdate_f();
-				break;
-			}
-			case 4: //进入下一级菜单
-			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-//			  diffValue++;
-//				if(diffValue >= 10) //差值最小值限幅
-//				{
-//					diffValue = 10;
-//				}
-//				sprintf(tempStr2,"DiffValue:%d",diffValue );
-//				ChangeParameterMenu.menuItems[3] = (uint8_t *)tempStr2;
-//				lcdDisplayUpdate = 1;
-//				CurrentMenu->displayUpdate_f();
-				break;
-			}
-			case 5: //确认键
-			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-				feedmultiply = temp_feedMultiply;
-				if(CurrentMenu->parent!=NULL)//父菜单不为空，将显示父菜单
-			  {
-			    CurrentMenu = CurrentMenu->parent;
-			    lcdDisplayUpdate = 1;
-				CurrentMenu->displayUpdate_f();
-			  }
-				break;
-			}
-			
-			default:
-			break;
-	}
+	uint8_t keyMsg = keyPressed; //记录按下的键值
+  keyPressed = 0; //按下的键值信息清零
   
-	//更新LCD屏幕上显示的条目内容及选中行的标记
+  //处理按键消息
+	switch(keyMsg)  //keyPressed（按下的键值） 由外部中断获得
+	{
+		case KEY_UP_PRESSED://上移
+		case KEY_DOWN_PRESSED: //下移
+		case KEY_LEFT_PRESSED://返回键
+		case KEY_RIGHT_PRESSED: //进入下一级菜单
+		case KEY_MID_PRESSED: //确认键
+      LCD12864_Clear();
+      CurrentMenu = &MainMenu;
+      lcdDisplayUpdate = 1; //切换菜单后要将显示更新标志位置位，用于使当前菜单更新到切换的菜单
+      return;	
+		default:
+      //为打印完成的菜单条目的赋值是在get_commond()函数内完成的。
+			break;
+  }
+	//更新LCD屏幕上显示的条目内容,
 	if(1 == lcdDisplayUpdate) //按键更新标记
 	{
 		lcdDisplayUpdate = 0; //屏幕显示更新标记清零
-		LCD12864_Clear();
-		for(i=0;i<4;i++)
+		for(uint8_t i=0;i<4;i++)
 		{
+      LCD12864_ShowString(i,0,"                ");
 			LCD12864_ShowString(i,0,CurrentMenu->menuItems[i+CurrentMenu->range_from]);
 		}
 	}
 }
 
-void lcd_displayUpdate_changeParameterMenu_temp(void)
-{
-	uint8_t i;
-	static uint8_t diffValue = 1; //每次增加或减小的差值
-//  uint16_t temp_e0TargetTemp ; //
-	char tempStr1[16],tempStr2[16];
-	temp_e0TargetTemp = degTargetHotend(0);
-	//处理按键消息
-	switch(keyPressed)  //keyPressed（按下的键值） 由外部中断获得
-	{
-		case 1://上移
-			keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-		  temp_e0TargetTemp +=diffValue;
-		  if(temp_e0TargetTemp >= HEATER_0_MAXTEMP - 15) //最大值限幅
-			{
-				temp_e0TargetTemp = HEATER_0_MAXTEMP - 15;
-			}
-		  sprintf(tempStr1,"Temp0:%ddeg",temp_e0TargetTemp );
-		  ChangeParameterMenu.menuItems[2] = (uint8_t *)tempStr1;
-		  lcdDisplayUpdate = 1;
-		  CurrentMenu->displayUpdate_f();
-		case 2: //下移
-			keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-			temp_e0TargetTemp -=diffValue;
-			if(temp_e0TargetTemp <= 5)
-			{
-				temp_e0TargetTemp = 5;
-			}
-			sprintf(tempStr1,"Temp0:%ddeg",temp_e0TargetTemp );
-			ChangeParameterMenu.menuItems[2] = (uint8_t *)tempStr1;
-			lcdDisplayUpdate = 1;
-			CurrentMenu->displayUpdate_f();
-			break;
-		case 3://返回键
-			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-			  diffValue--;
-				if(diffValue <= 1) //差值最小值限幅
-				{
-					diffValue = 1;
-				}
-				sprintf(tempStr2,"DiffValue:%d",diffValue );
-				ChangeParameterMenu.menuItems[3] = (uint8_t *)tempStr2;
-				lcdDisplayUpdate = 1;
-				CurrentMenu->displayUpdate_f();
-				break;
-			}
-			case 4: //进入下一级菜单
-			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-			  diffValue++;
-				if(diffValue >= 10) //差值最小值限幅
-				{
-					diffValue = 10;
-				}
-				sprintf(tempStr2,"DiffValue:%d",diffValue );
-				ChangeParameterMenu.menuItems[3] = (uint8_t *)tempStr2;
-				lcdDisplayUpdate = 1;
-				CurrentMenu->displayUpdate_f();
-				break;
-			}
-			case 5: //确认键
-			{
-				keyPressed = 0; //按下的键值清零，否则回一直执行该状态
-				setTargetHotend(temp_e0TargetTemp,0);
-				if(CurrentMenu->parent!=NULL)//父菜单不为空，将显示父菜单
-			  {
-			    CurrentMenu = CurrentMenu->parent;
-			    lcdDisplayUpdate = 1;
-					CurrentMenu->displayUpdate_f();
-			  }
-				break;
-			}
-			
-			default:
-			break;
-	}
-  
-	//更新LCD屏幕上显示的条目内容及选中行的标记
-	if(1 == lcdDisplayUpdate) //按键更新标记
-	{
-		lcdDisplayUpdate = 0; //屏幕显示更新标记清零
-		LCD12864_Clear();
-		for(i=0;i<4;i++)
-		{
-			LCD12864_ShowString(i,0,CurrentMenu->menuItems[i+CurrentMenu->range_from]);
-		}
-	}
-}
+#endif
 
+#ifdef SDSUPPORT
 
 //得到path路径下,目标文件的总个数
 //path:路径		    
@@ -1909,10 +1662,8 @@ void card_readFileListInfo(void)
  	DIR gcodir;	 		     //Gcode文件目录
 	FILINFO gcofileinfo; //文件信息
 	u8 *fn;   			     //长文件名
-	u8 temp_fn[100][30];  //用于存储sd卡文件名的临时数组
 	u8 *pname;			     //带路径的文件名
-	//u16 totgconum; 		   //Gcode文件总数
-//	u16 curindex;		     //Gcode文件当前索引
+	u16 curindex;		     //Gcode文件当前索引
 	u16 temp;
 	u16 *gcoindextbl;	   //Gcode文件索引表 	
 	 
@@ -1928,7 +1679,6 @@ void card_readFileListInfo(void)
 	//	} 
 		
 		totgconum = card_getFileNum("0:/GCODE"); //得到总有效文件数
-		//LCD12864_ShowNum(2,0,totgconum); //显示有效文件的数量，用于测试
 		//检查有效文件的数目是否为0
 	//	while(totgconum==NULL)//文件有效文件数目为0		
 	// 	{	    
@@ -1941,7 +1691,6 @@ void card_readFileListInfo(void)
 		gcofileinfo.lfname=mymalloc(gcofileinfo.lfsize);	//为长文件缓存区分配内存
 		pname=mymalloc(gcofileinfo.lfsize);				        //为带路径的文件名分配内存
 		gcoindextbl=mymalloc(2*totgconum);				//申请2*totgconum个字节的内存,用于存放文件索引
-		//zzz = mymalloc(10*totgconum);    //为文件名存储数组分配空间，不知道改分配多大空间，现在是随便给的。
 		//检查内存分配是否出错
 	// 	while(gcofileinfo.lfname==NULL||pname==NULL||gcoindextbl==NULL)//内存分配出错
 	// 	{	    
@@ -1952,6 +1701,22 @@ void card_readFileListInfo(void)
 	//	}
 		//记录索引
 		CardMenu.itemCount = totgconum; //初始化文件列表中文件数目
+    
+    /*只有按下面这种方式分配好内存，后面的strcpy函数才可使用*/
+    cardFileNameList = mymalloc(sizeof(char *) * totgconum);
+    for(uint8_t i = 0; i < totgconum; ++i)
+    {
+      cardFileNameList[i] = mymalloc(sizeof(char) * 100);
+      //检查内存分配是否出错
+	 	while(cardFileNameList==NULL||cardFileNameList[i]==NULL)//内存分配出错
+	 	{	    
+      LCD12864_ShowString(1,0,"内存分配失败!");
+			delay_ms(200);				  
+			LCD12864_Clear();//清除显示	     
+			delay_ms(200);				  
+		}
+    }
+    
 		res = f_opendir(&gcodir,"0:/GCODE"); //打开目录
 		if(res == FR_OK)
 		{
@@ -1968,36 +1733,17 @@ void card_readFileListInfo(void)
 				if((res&0XF0)==0X70)//取高四位,看看是不是Gcode文件	 
 				{
 					gcoindextbl[curindex]=temp;//记录索引
-					//strcpy((char *)temp_fn[curindex],"  "); //
-	//				zzz[curindex] = temp_fn[curindex]; //测试用，将二维数组中的字符串存取到zzz数组中
-					strcpy((char *)cardFileList[curindex],(const char*)fn);
-//					strncpy((char *)temp_fn[curindex],(const char*)fn,14); //将文件名前14个字符存储到1个二维数组中
-					strcpy((char *)temp_fn[curindex],(const char*)fn);
-					CardMenu.menuItems[curindex] = temp_fn[curindex]; //将二维数组中的字符串存取到CardMenu.menuItems数组中，即初始化文件列表名称
-					curindex++;
+          strcpy((char *)cardFileNameList[curindex],(const char*)fn);
+          curindex++;
 				}	    
 			} 
-		}   
-			//用于测试CardMenu.menuItems[]是否存储了SD卡文件列表
-	//	for(curindex=0;curindex<totgconum;curindex++) 
-	//	{
-	//	  LCD12864_ShowString(3,0,"显示到这。。");
-	//		LCD12864_ShowString(curindex,0,CardMenu.menuItems[curindex]);
-	//	}   	 
-	//while(1);
-		 	
-//  if(SD_CD) //用于在显示sd卡文件列表页面时，拔出sd卡返回主页面
-//	{
-//		CurrentMenu = &MainMenu;
-//		lcdDisplayUpdate = 1; //切换菜单后要将显示更新标志位置位，用于使当前菜单更新到切换的菜单
-//	}		
+		}   	
 		myfree(gcofileinfo.lfname);	//释放内存			    
 		myfree(pname);				//释放内存			    
 		myfree(gcoindextbl);		//释放内存
-		//myfree(zzz);	//测试用
 }
 
-
+#endif
 
 
 

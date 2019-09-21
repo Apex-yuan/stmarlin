@@ -272,7 +272,7 @@ void TIM4_IRQHandler(void) {  //TIM4中断
       #endif       
         if(check_endstops) {  //CHECK_ENDSTOPS开启限位开关检测      
           #if defined (X_MIN_PIN)  //触碰到最小值处的限位开关
-            bool x_min_endstop = (READ_INPUT(X_MIN_PIN) != X_MIN_ENDSTOP_INVERTING); //未触碰到行程开关时值为0，触碰到值为1
+            bool x_min_endstop = (READ(X_MIN_PIN) != X_MIN_ENDSTOP_INVERTING); //未触碰到行程开关时值为0，触碰到值为1
             if(x_min_endstop && old_x_min_endstop && (current_block->steps_x > 0)) {
               endstops_trigsteps[X_AXIS] = count_position[X_AXIS];  //记录当前位置
               endstop_x_hit = true;  //设定x轴endstop的状态
@@ -285,7 +285,7 @@ void TIM4_IRQHandler(void) {  //TIM4中断
       else {  // X轴正方向    
         if(check_endstops) {  //CHECK_ENDSTOPS开启限位开关检测       
           #if defined (X_MAX_PIN)
-            bool x_max_endstop = (READ_INPUT(X_MAX_PIN) != X_MAX_ENDSTOP_INVERTING);
+            bool x_max_endstop = (READ(X_MAX_PIN) != X_MAX_ENDSTOP_INVERTING);
             if(x_max_endstop && old_x_max_endstop && (current_block->steps_x > 0)) {
               endstops_trigsteps[X_AXIS] = count_position[X_AXIS];
               endstop_x_hit = true;
@@ -304,7 +304,7 @@ void TIM4_IRQHandler(void) {  //TIM4中断
         if(check_endstops) //CHECK_ENDSTOPS开启限位开关检测
         {
           #if defined(Y_MIN_PIN)
-            bool y_min_endstop = (READ_INPUT(Y_MIN_PIN) != Y_MIN_ENDSTOP_INVERTING);
+            bool y_min_endstop = (READ(Y_MIN_PIN) != Y_MIN_ENDSTOP_INVERTING);
             if(y_min_endstop && old_y_min_endstop && (current_block->steps_y > 0)) {
               endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
               endstop_y_hit = true;
@@ -317,7 +317,7 @@ void TIM4_IRQHandler(void) {  //TIM4中断
       else {  //Y轴正方向     
         if(check_endstops) {//CHECK_ENDSTOPS开启限位开关检测
           #if defined(Y_MAX_PIN)
-            bool y_max_endstop = (READ_INPUT(Y_MAX_PIN) != Y_MAX_ENDSTOP_INVERTING);
+            bool y_max_endstop = (READ(Y_MAX_PIN) != Y_MAX_ENDSTOP_INVERTING);
             if(y_max_endstop && old_y_max_endstop && (current_block->steps_y > 0)) {
               endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
               endstop_y_hit = true;
@@ -333,7 +333,7 @@ void TIM4_IRQHandler(void) {  //TIM4中断
         count_direction[Z_AXIS] = -1;
         if(check_endstops) {  //CHECK_ENDSTOPS开启限位开关检测       
           #if defined(Z_MIN_PIN)
-            bool z_min_endstop = (READ_INPUT(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
+            bool z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
             if(z_min_endstop && old_z_min_endstop && (current_block->steps_z > 0)) {
               endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
               endstop_z_hit = true;
@@ -348,7 +348,7 @@ void TIM4_IRQHandler(void) {  //TIM4中断
         count_direction[Z_AXIS] = 1;
         if(check_endstops) {  //CHECK_ENDSTOPS开启限位开关检测       
           #if defined(Z_MAX_PIN)
-            bool z_max_endstop = (READ_INPUT(Z_MAX_PIN) != Z_MAX_ENDSTOP_INVERTING);
+            bool z_max_endstop = (READ(Z_MAX_PIN) != Z_MAX_ENDSTOP_INVERTING);
             if(z_max_endstop && old_z_max_endstop && (current_block->steps_z > 0)) {
               endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
               endstop_z_hit = true;

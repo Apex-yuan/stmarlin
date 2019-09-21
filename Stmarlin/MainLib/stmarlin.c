@@ -9,15 +9,21 @@
 #include "language.h"
 #include "ConfigurationStore.h"
 #include "motion_control.h"
-#include "cardreader.h"
+#ifdef SDSUPPORT 
+  #include "cardreader.h"
+#endif
 /* CHIP */
 #include "timer.h"
 #include "delay.h"
 #include "usart.h"
 /* BOARD */
-#include "sdio_sdcard.h"
-#include "lcd12864.h"
-#include "lcd12864_menu.h"
+#ifdef SDSUPPORT 
+ #include "sdio_sdcard.h"
+#endif
+#ifdef LCD12864_ST7920
+  #include "lcd12864.h"
+  #include "lcd12864_menu.h"
+#endif
 
 /*  // G/M代码的解释
 //Implemented Codes
@@ -122,6 +128,7 @@
 //=============================public variables=============================
 //===========================================================================
 float homing_feedrate[] = HOMING_FEEDRATE;
+float again_homing_feedrate[] = AGAIN_HOMING_FEEDRATE;
 bool axis_relative_modes[] = AXIS_RELATIVE_MODES;
 int feedmultiply=100; //100->1 200->2
 int saved_feedmultiply;
@@ -419,6 +426,7 @@ void get_command(void)  //读取串口信息
   char time[30];
   unsigned long t;
   int hours, minutes;
+  char consumingTime[30];
   
   if(!card.sdprinting || serial_count!=0)
 		{ 
@@ -565,7 +573,7 @@ static void homeaxis(int axis)  //轴回坐标原点
 
     //当前轴向原点移动 2*home_retract_mm[axis]的距离，触碰到限位开关会停止运动  
     destination[axis] = 2*home_retract_mm[axis] * home_dir[axis];
-    feedrate = homing_feedrate[axis]/2 ;
+    feedrate = again_homing_feedrate[axis]/2 ;
     plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate/60, active_extruder);
     st_synchronize();
 

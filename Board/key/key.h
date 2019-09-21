@@ -21,6 +21,12 @@
 #define KEY1_PRESS	7		//KEY1 
 #define WKUP_PRESS	8		//WK_UP 
 
+#define KEY_UP_PRESSED     1
+#define KEY_DOWN_PRESSED   2
+#define KEY_LEFT_PRESSED   3
+#define KEY_RIGHT_PRESSED  4
+#define KEY_MID_PRESSED    5
+
 void KEY_Init(void);
 u8 KEY_Scan(u8 mode);
 

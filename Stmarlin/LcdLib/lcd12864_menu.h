@@ -18,7 +18,8 @@
 #include "stm32f10x.h"
 
 #include "exfuns.h"
-#include "string.h"	
+#include "string.h"
+#include "stdbool.h"
 //#include "led.h"
 
 #define MENU_SIZE 6
@@ -47,15 +48,16 @@ typedef struct menu//定义一个菜单
 }MenuTypeDef;
 
 extern MenuTypeDef *CurrentMenu;
+extern MenuTypeDef CardMenu;
 extern MenuTypeDef StatusMenu;
 extern MenuTypeDef PrintingFinishedMenu;
 extern MenuTypeDef YesOrNoMenu;
 
 extern u16 totgconum; 		//Gcode文件总数
-extern uint8_t **zzz;
-extern char consumingTime[30];
-extern char printingFilename[30];
-extern uint8_t lcdDisplayUpdate;
+//extern uint8_t **zzz;
+extern char printingFilename[100];
+extern bool lcdDisplayUpdate;
+extern uint8_t ** cardFileNameList;
 
 void welcome_screen(void);
 void lcd_productInfo(void);
@@ -63,7 +65,7 @@ void lcd_productInfo(void);
 void lcd_cardPrinting(void);
 void lcd_printingPauseOrContinue(void);
 void lcd_stopPrinting(void);
-void lcd_cardInsertOrNot(void);
+void lcd_checkCardInsert(void);
 void lcd_noCard(void);
 
 void lcd_menuInit(void);
