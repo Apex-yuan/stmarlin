@@ -62,3 +62,57 @@ typedef unsigned       __INT64 uint64_t;
 6.规范了工程中的代码风格，按最新版marlin固件官网规范的风格。注释规范尚不标准，后面慢慢完善。
 7.重新优化了工程结构，具体结构可参考Stmarlin Keil MDK 工程目录.mmap，并将代码文件做了重新分类，有些文件夹仍为空，是后面优化升级时需要慢慢填充的。
 8.该版本采用C99标准，要在选项里面C/C++栏勾选上C99。此外要支持printf函数要在选项中勾选上使用微库。
+
+ 2018/2/4 Stmarlin V2.0.1
+目标：为工程增加支持SD卡的代码
+1.增加sdio的板级支持代码   OK
+2.移植FATFS文件系统        OK
+3.增加stmarlin读卡支持    OK
+4.增加屏幕菜单  OK
+
+2018/3/10
+利用标准库函数实现下列内容
+/**
+ * Fast I/O interfaces for STM32F1
+ * These use GPIO functions instead of Direct Port Manipulation, as on AVR.
+ */
+
+#ifndef _FASTIO_STM32F1_H
+#define _FASTIO_STM32F1_H
+
+#include <libmaple/gpio.h>
+
+#define READ(IO)              (PIN_MAP[IO].gpio_device->regs->IDR & (1U << PIN_MAP[IO].gpio_bit) ? HIGH : LOW)
+#define WRITE(IO, v)          (PIN_MAP[IO].gpio_device->regs->BSRR = (1U << PIN_MAP[IO].gpio_bit) << (16 * !(bool)v))
+#define TOGGLE(IO)            (PIN_MAP[IO].gpio_device->regs->ODR = PIN_MAP[IO].gpio_device->regs->ODR ^ (1U << PIN_MAP[IO].gpio_bit))
+#define WRITE_VAR(IO, v)      WRITE(io, v)
+
+#define _GET_MODE(IO)         (gpio_get_mode(PIN_MAP[IO].gpio_device, PIN_MAP[IO].gpio_bit))
+#define _SET_MODE(IO,M)       do{ gpio_set_mode(PIN_MAP[IO].gpio_device, PIN_MAP[IO].gpio_bit, M); } while (0)
+#define _SET_OUTPUT(IO)       _SET_MODE(IO, GPIO_OUTPUT_PP)
+
+#define SET_INPUT(IO)         _SET_MODE(IO, GPIO_INPUT_FLOATING)
+#define SET_INPUT_PULLUP(IO)  _SET_MODE(IO, GPIO_INPUT_PU)
+#define SET_OUTPUT(IO)        do{ _SET_OUTPUT(IO); WRITE(IO, LOW); }while(0)
+
+#define GET_INPUT(IO)         (_GET_MODE(IO) == GPIO_INPUT_FLOATING || _GET_MODE(IO) == GPIO_INPUT_ANALOG || _GET_MODE(IO) == GPIO_INPUT_PU || _GET_MODE(IO) == GPIO_INPUT_PD)
+#define GET_OUTPUT(IO)        (_GET_MODE(IO) == GPIO_OUTPUT_PP)
+#define GET_TIMER(IO)         (PIN_MAP[IO].timer_device != NULL)
+
+#define OUT_WRITE(IO, v)      { _SET_OUTPUT(IO); WRITE(IO, v); }
+/**
+ * TODO: Write a macro to test if PIN is PWM or not.
+ */
+#define PWM_PIN(p)            true
+
+#endif // _FASTIO_STM32F1_H
+
+2018/4/6
+测试当前程序：
+    当前程序运行测试有问题，喷头在打印过程中总是莫名其妙的沿X轴或Y轴运动到最大位置或最小位置再返回。
+		通过测试发现是stmarlin.c文件中process_command()函数和stepper.c文件中的步进电机中断服务函数的问题，具体原因还不清楚。
+		通过将这两部分代码替换为原来的代码即可正常运行，只替换一处问题仍然存在。
+
+2018/4/8
+stmarlin 2.0.1 版本基本将原来完整的打印机固件功能已完全添加上来了，新添加的部分代码依然比较乱，尚未整理完全。经过测试可以
+通过屏幕控制正常打印。因此以此版作为备份后面继续整理代码。

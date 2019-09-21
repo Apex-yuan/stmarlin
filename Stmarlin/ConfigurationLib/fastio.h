@@ -36,7 +36,7 @@
 #define PF14  GPIOF,GPIO_Pin_14
 #define PF15  GPIOF,GPIO_Pin_15
 
-#define WRITE(IO,v)  do{ GPIO_WriteBit(IO,(BitAction)v); }while(0)  //要提前将该GPIO端口初始化为输出模式
+#define WRITE(IO,v)   do{if(0 == v) GPIO_ResetBits(IO); else if(1 == v) GPIO_SetBits(IO);}while(0)//GPIO_WriteBit(IO,(BitAction)v)  //要提前将该GPIO端口初始化为输出模式
 #define READ_OUTPUT(IO)   GPIO_ReadOutputDataBit(IO)  //要提前将该GPIO端口初始化为输出模式
 
 #define READ_INPUT(IO)  GPIO_ReadInputDataBit(IO)  //要提前将该GPIO端口初始化为输入模式

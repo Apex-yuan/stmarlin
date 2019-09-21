@@ -152,7 +152,7 @@ void step_wait(void) {  //²½½øµÈ´ı
   }
 }
   
-static inline unsigned short calc_timer(unsigned short step_rate) {  //¼ÆËãÖĞ¶ÏÊ±¼ä£¨ÖĞ¶ÏÊ±¼ä¶ÔÓ¦µÄÆµÂÊ¾ÍÊÇ²½½øµç»úµÄËÙ¶È£©
+/*static inline*/ unsigned short calc_timer(unsigned short step_rate) {  //¼ÆËãÖĞ¶ÏÊ±¼ä£¨ÖĞ¶ÏÊ±¼ä¶ÔÓ¦µÄÆµÂÊ¾ÍÊÇ²½½øµç»úµÄËÙ¶È£©
   unsigned short timer;
   if(step_rate > MAX_STEP_FREQUENCY) step_rate = MAX_STEP_FREQUENCY;//²½½øµç»úÆµÂÊ×î´óÖµÏŞ·ù£¨40KHZ£©
   
@@ -179,7 +179,7 @@ static inline unsigned short calc_timer(unsigned short step_rate) {  //¼ÆËãÖĞ¶ÏÊ
 
 // Initializes the trapezoid generator from the current block. Called whenever a new 
 // block begins. //³õÊ¼»¯µ±Ç°blockµÄÌİĞÎ·¢ÉúÆ÷£¬Ã¿µ±Ò»¸öĞÂµÄblock¿ªÊ¼Ê±¶¼Òªµ÷ÓÃ£¨ÔÚ²½½øµç»úÖĞ¶ÏÖĞÖ´ĞĞ£¬Ò»¸öblockÖĞ£¬¸Ãº¯ÊıÖ»Ö´ĞĞÒ»´Î£©
-static inline void trapezoid_generator_reset(void) {
+/*static inline*/ void trapezoid_generator_reset(void) {
   #ifdef ADVANCE  //£¨·Ç»î¶¯£©
     advance = current_block->initial_advance;
     final_advance = current_block->final_advance;
@@ -268,7 +268,7 @@ void TIM4_IRQHandler(void) {  //TIM4ÖĞ¶Ï
       #ifndef COREXY
         if ((out_bits & (1<<X_AXIS)) != 0) {  //È¡³öXÖáµÄ·½Ïò£¨0£ºÕı·½Ïò 1£º¸º·½Ïò£©// stepping along -X axis  //ÑØ-X·½Ïò²½½ø 
       #else //(·Ç»î¶¯)
-        if ((((out_bits & (1<<X_AXIS)) != 0)&&(out_bits & (1<<Y_AXIS)) != 0)) {   //-X occurs for -A and -B
+        //if ((((out_bits & (1<<X_AXIS)) != 0)&&(out_bits & (1<<Y_AXIS)) != 0)) {   //-X occurs for -A and -B
       #endif       
         if(check_endstops) {  //CHECK_ENDSTOPS¿ªÆôÏŞÎ»¿ª¹Ø¼ì²â      
           #if defined (X_MIN_PIN)  //´¥Åöµ½×îĞ¡Öµ´¦µÄÏŞÎ»¿ª¹Ø
@@ -299,7 +299,7 @@ void TIM4_IRQHandler(void) {  //TIM4ÖĞ¶Ï
       #ifndef COREXY
         if ((out_bits & (1<<Y_AXIS)) != 0) {  // YÖá¸º·½Ïò
       #else
-        if ((((out_bits & (1<<X_AXIS)) != 0)&&(out_bits & (1<<Y_AXIS)) == 0)) {   // -Y occurs for -A and +B
+        //if ((((out_bits & (1<<X_AXIS)) != 0)&&(out_bits & (1<<Y_AXIS)) == 0)) {   // -Y occurs for -A and +B
       #endif        
         if(check_endstops) //CHECK_ENDSTOPS¿ªÆôÏŞÎ»¿ª¹Ø¼ì²â
         {
@@ -373,7 +373,7 @@ void TIM4_IRQHandler(void) {  //TIM4ÖĞ¶Ï
       //Õı³£Çé¿öÏÂÒ»¸öÖĞ¶ÏÖÜÆÚ²½½øµç»ú×ªÒ»²½£¬¼´ÖĞ¶ÏÖÜÆÚµÄ¶¨Ê±ÆµÂÊ¼´Îª²½½øµç»úµÄÂö³åÆµÂÊ¡£       
       //step_loops»áÒÀ¾İclac_timer()º¯ÊıÀ´È·¶¨	
       for(uint8_t i=0; i < step_loops; i++) {  // Take multiple steps per interrupt (For high speed moves)	//Ã¿¸öÖĞ¶ÏÖÜÆÚ×ß¶à²½£¨¶ÔÓÚ¸ßËÙÔË¶¯£©
-        MYSERIAL_checkRx(); // Check for serial chars.
+        //MYSERIAL_checkRx(); // Check for serial chars. //¸Ãº¯Êı²»ÄÜ¼ÓÔÚÕâ£¬Èô¼ÓÔÚ´Ë´¦´òÓ¡»ú½«²»ÄÜÕı³£ÔËĞĞ£¨ÅçÍ·ÔÚ´òÓ¡¹ı³ÌÖĞ×ÜÊÇÄªÃûÆäÃîµÄÑØXÖá»òYÖáÔË¶¯µ½×î´óÎ»ÖÃ»ò×îĞ¡Î»ÖÃÔÙ·µ»Ø£©
         
         #ifdef ADVANCE  //£¨·Ç»î¶¯£©	  
           counter_e += current_block->steps_e;
@@ -600,7 +600,8 @@ void st_synchronize(void) {
   while( blocks_queued()) {
     manage_heater();
     manage_inactivity();
-    //lcd_update();
+//    lcd_update();
+    printf("1111111111\n");
   }
 }
 
@@ -754,4 +755,859 @@ void microstep_readings(void)
 	printf("E0: %d\n",subsection_e0_value);
 	printf("E1: %d\n",subsection_e1_value);
 }
+
+
+
+//#include "stepper.h"
+
+////#include "speed_lookuptable.h" //Êµ¼ÊÉÏÃ»ÓĞ²ÉÓÃ²é±íµÄ·½·¨
+//#include "planner.h"
+//#include "temperature.h"
+//#include "serial.h"
+//#include "language.h"
+
+//#include "usart.h"
+//#include "timer.h"
+
+//#include "chip.h"
+
+
+////#define X_ENABLE_PINa   PFout(10)
+////#define X_DIR_PINa      PFout(8)
+////#define X_STEP_PINa     PFout(9) 
+
+////#define Y_ENABLE_PINa   PFout(7)  
+////#define Y_DIR_PINa      PFout(5) 
+////#define Y_STEP_PINa     PFout(6)     
+
+////#define Z_ENABLE_PINa   PFout(4)
+////#define Z_DIR_PINa      PFout(2) 
+////#define Z_STEP_PINa     PFout(3) 
+
+////#define E0_ENABLE_PINa  PFout(1) 
+////#define E0_DIR_PINa     PEout(6) 
+////#define E0_STEP_PINa    PFout(0)         
+////    
+////#define E1_ENABLE_PINa  PEout(5)
+////#define E1_DIR_PINa	   PEout(3) 
+////#define E1_STEP_PINa    PEout(4)	 
+
+
+////#define X_MAX_PINa      PAin(4)//4
+////#define X_MIN_PINa     PAin(5)//5
+////#define Y_MAX_PINa      PAin(6)//6
+////#define Y_MIN_PINa      PAin(7)//7
+////#define Z_MAX_PINa      PCin(4)//4
+////#define Z_MIN_PINa     PCin(5)//5 
+
+//#ifdef DEBUG_STEPPER
+//  unsigned int add_interrupt_time = 0; //Îªµ÷ÊÔÊ±Í³¼ÆÌİĞÎÇúÏßÔÈËÙ¶ÎÊ±¼ä
+//#endif
+
+////ÏÂÃæÕâ¸ö¶¨Òåºê£¬¶¨ÒåµÄÊÇÊı×ÖµçÎ»Æ÷µÄÒı½Å£¬ÔÚ´ËÃ»ÓĞÓÃµ½Êı×ÖµçÎ»Æ÷¡£
+////ÇÒÕâÖÖÒı½Å¶¨Òå·½Ê½²»ÊÊÓÃÓÚSTM32£¬ºóÃæÈç¹ûÒªÓÃÊı×ÖµçÎ»Æ÷£¬ÔÚ¾ßÌå¿¼ÂÇÔõÃ´Ó¦ÓÃ¡£
+////#define DIGIPOT_CHANNELS {4,1,0,2,3} // X Y Z E0 E1 digipot channels to stepper driver mapping
+
+////´æ´¢¶ÁÈ¡µ½µÄ²½½øµç»úÇı¶¯µÄÏ¸·ÖÖµ£¬Ã»ÓĞÓÃµ½Èí¼şÉèÖÃÏ¸·Ö£¬Ö±½ÓÓ²¼şÅäÖÃÎª16Ï¸·Ö£¬¹ÊÏÂÃæ²ÎÊıÈ«³õÊ¼»¯Îª16
+//static uint8_t subsection_x_value=16;
+//static uint8_t subsection_y_value=16;
+//static uint8_t subsection_z_value=16;
+//static uint8_t subsection_e0_value=16;
+//static uint8_t subsection_e1_value=16;
+
+
+////===========================================================================
+////=============================public variables  ============================
+////===========================================================================
+//block_t *current_block;  // A pointer to the block currently being traced
+
+
+////===========================================================================
+////=============================private variables ============================
+////===========================================================================
+////static makes it inpossible to be called from outside of this file by extern.!
+
+//// Variables used by The Stepper Driver Interrupt
+//static unsigned char out_bits;        // The next stepping-bits to be output
+//static long counter_x,       // Counter variables for the bresenham line tracer
+//            counter_y, 
+//            counter_z,       
+//            counter_e;
+//volatile static unsigned long step_events_completed; //blockµÄÍê³É¶È// The number of step events executed in the current block //ÔÚµ±Ç°blockÖĞ±»Ö´ĞĞµÄ²½ÊÂ¼şµÄÊıÁ¿
+//#ifdef ADVANCE  //£¨·Ç»î¶¯£©
+//  static long advance_rate, advance, final_advance = 0;
+//  static long old_advance = 0;
+//  static long e_steps[3];
+//#endif
+//static long acceleration_time, deceleration_time;
+////static unsigned long accelerate_until, decelerate_after, acceleration_rate, initial_rate, final_rate, nominal_rate;
+//static unsigned short acc_step_rate; // needed for deccelaration start point
+//static char step_loops;
+//static unsigned short TIMER4_nominal;
+//static unsigned short step_loops_nominal;
+
+//volatile long endstops_trigsteps[3]={0,0,0};
+//volatile long endstops_stepsTotal,endstops_stepsDone;
+//static volatile bool endstop_x_hit=false;
+//static volatile bool endstop_y_hit=false;
+//static volatile bool endstop_z_hit=false;
+
+//#ifdef ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED  //£¨·Ç»î¶¯£©
+//bool abort_on_endstop_hit = false;
+//#endif //ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED
+
+//static bool old_x_min_endstop=false;
+//static bool old_x_max_endstop=false;
+//static bool old_y_min_endstop=false;
+//static bool old_y_max_endstop=false;
+//static bool old_z_min_endstop=false;
+//static bool old_z_max_endstop=false;
+
+//static bool check_endstops = true;
+
+//volatile long count_position[NUM_AXIS] = { 0, 0, 0, 0}; //ÓÃÓÚ¼ÇÂ¼¸÷Öá×ÔÔË¶¯¿ªÊ¼Ïà¶ÔÓÚÆğÊ¼ÔË¶¯µãµÄÎ»ÖÃ
+//volatile signed char count_direction[NUM_AXIS] = { 1, 1, 1, 1}; //¼ÇÂ¼¸÷ÖáµÄ·½Ïò£¨Âö³å·½ÏòÖµ°´Âö³å²½Êıµş¼ÓÆğÀ´¾ÍÊÇ¸÷ÖáµÄÎ»ÖÃ£©
+
+////===========================================================================
+////=============================functions         ============================
+////===========================================================================
+
+//#define CHECK_ENDSTOPS  if(check_endstops) //¿ªÆôÏŞÎ»¿ª¹Ø¼ì²â
+////Ô­°æarduino³ÌĞòµÄÏÂÁĞÁ½¸öº¯ÊıµÄ¶¨ÒåÊÇÀûÓÃ»ã±à´úÂëÍê³ÉµÄ£¨»ã±à¿ÉÒÔÌá¸ßÔËËãµÄËÙ¶È£©£¬ÕâÀïµÄ¶¨Òå²ÉÓÃCÓïÑÔµÄ·½Ê½£¬ÔËËãĞ§ÂÊ¿ÉÄÜÂÔµÍ£¬µ«ÊµÏÖµÄ¹¦ÄÜÒ»ÖÂ¡£
+//#define MultiU24X24toH16(intRes, longIn1, longIn2) intRes= ((uint64_t)(longIn1) * (longIn2)) >> 24 //intRes = longIn1 * longIn2 >> 24
+//#define MultiU16X8toH16(intRes, charIn1, intIn2) intRes = ((charIn1) * (intIn2)) >> 16  // intRes = intIn1 * intIn2 >> 16
+
+//void checkHitEndstops(void)
+//{
+// if( endstop_x_hit || endstop_y_hit || endstop_z_hit) {
+//   SERIAL_ECHO_START;
+//   printf(MSG_ENDSTOPS_HIT);
+//   if(endstop_x_hit) {
+//     printf(" X:%f",(float)endstops_trigsteps[X_AXIS]/axis_steps_per_unit[X_AXIS]);  //endstops_trigsteps[X_AXIS]´æ´¢µÄĞÅÏ¢ÊÇÊ²Ã´£¿  
+//   }
+//   if(endstop_y_hit) {
+//     printf(" Y:%f",(float)endstops_trigsteps[Y_AXIS]/axis_steps_per_unit[Y_AXIS]);  
+//   }
+//   if(endstop_z_hit) {
+//     printf(" Z:%f",(float)endstops_trigsteps[Z_AXIS]/axis_steps_per_unit[Z_AXIS]); 
+//   }
+//   printf("\n");
+//   endstop_x_hit=false;
+//   endstop_y_hit=false;
+//   endstop_z_hit=false;
+//#ifdef ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED //£¨·Ç»î¶¯£©
+//   if (abort_on_endstop_hit)
+//   {
+//     card.sdprinting = false;
+//     card.closefile();
+//     quickStop();
+//     setTargetHotend0(0);
+//     setTargetHotend1(0);
+//     setTargetHotend2(0);
+//   }
+//#endif
+// }
+//}
+
+//void endstops_hit_on_purpose(void)  //ÏŞÎ»¿ª¹ØÔÚÄ¿±êÎ»ÖÃ´¥·¢ºó£¬½«Æä¸´Î»
+//{
+//  endstop_x_hit=false;
+//  endstop_y_hit=false;
+//  endstop_z_hit=false;
+//}
+
+//void enable_endstops(bool check)  //ÊÇ·ñÊ¹ÄÜÏŞÎ»¿ª¹Ø¼ì²â£¬²¢½«×´Ì¬ĞÅÏ¢´¢´æµ½check_endstops±äÁ¿ÖĞ
+//{
+//  check_endstops = check;
+//}
+
+////         __________________________
+////        /|                        |\     _________________         ^
+////       / |                        | \   /|               |\        |
+////      /  |                        |  \ / |               | \       s
+////     /   |                        |   |  |               |  \      p
+////    /    |                        |   |  |               |   \     e
+////   +-----+------------------------+---+--+---------------+----+    e
+////   |               BLOCK 1            |      BLOCK 2          |    d
+////
+////                           time ----->
+//// 
+////  The trapezoid is the shape the speed curve over time. It starts at block->initial_rate, accelerates 
+////  first block->accelerate_until step_events_completed, then keeps going at constant speed until 
+////  step_events_completed reaches block->decelerate_after after which it decelerates until the trapezoid generator is reset.
+////  The slope of acceleration is calculated with the leib ramp alghorithm.
+
+//void st_wake_up(void)  //»½ĞÑ²½½øµç»ú£¬¿ªÆôTIMxÖĞ¶Ï
+//{ 
+//  ENABLE_STEPPER_DRIVER_INTERRUPT();  
+//}
+
+//void step_wait(void)  //²½½øµÈ´ı
+//{
+//   u8 i;
+//    for( i=0; i < 6; i++){
+//    }
+//}
+//  
+
+//unsigned short calc_timer(unsigned short step_rate)  //¼ÆËãÖĞ¶ÏÊ±¼ä
+//{
+//  unsigned short timer;
+//  if(step_rate > MAX_STEP_FREQUENCY) step_rate = MAX_STEP_FREQUENCY;//²½½øµç»úÆµÂÊ×î´óÖµÏŞ·ù£¨40KHZ£©
+//  
+//  if(step_rate > 20000) { // If steprate > 20kHz >> step 4 times
+//    step_rate = (step_rate >> 2)&0x3fff;  //¸Ã¼ÆËã¹«Ê½ÊÇÊ²Ã´ÒâË¼£¿
+//    step_loops = 4;  //È«¾Ö±äÁ¿£¬¼ÇÂ¼Ñ­»·´ÎÊı
+//  }
+//  else if(step_rate > 10000) { // If steprate > 10kHz >> step 2 times
+//    step_rate = (step_rate >> 1)&0x7fff; //¸Ã¼ÆËã¹«Ê½ÊÇÊ²Ã´ÒâË¼£¿
+//    step_loops = 2;
+//  }
+//  else {
+//    step_loops = 1;
+//  } 
+//  
+//  if(step_rate < 32) step_rate = 32;
+//  timer = 2000000/step_rate - 1;
+//	 
+//  if(timer < 100) { timer = 100; printf(MSG_STEPPER_TO_HIGH); printf("%d",step_rate); }//(20kHz this should never happen)
+//  return timer;
+//}
+
+//// Initializes the trapezoid generator from the current block. Called whenever a new 
+//// block begins. //³õÊ¼»¯µ±Ç°blockµÄÌİĞÎ·¢ÉúÆ÷£¬Ã¿µ±Ò»¸öĞÂµÄblock¿ªÊ¼Ê±¶¼Òªµ÷ÓÃ
+//void trapezoid_generator_reset(void)
+//{
+//  #ifdef ADVANCE  //£¨·Ç»î¶¯£©
+//    advance = current_block->initial_advance;
+//    final_advance = current_block->final_advance;
+//    // Do E steps + advance steps
+//    e_steps[current_block->active_extruder] += ((advance >>8) - old_advance);
+//    old_advance = advance >>8;  
+//  #endif
+//	
+//  deceleration_time = 0; //Éè¶¨¼õËÙ¶ÎµÄÊ±¼ä
+//  // step_rate to timer interval
+//  TIMER4_nominal = calc_timer(current_block->nominal_rate); //¼ÆËã¶î¶¨ËÙ¶È¶ÎÖĞ¶ÏµÄÊ±¼ä
+//  // make a note of the number of step loops required at nominal speed //¼ÇÏÂÔÚ¶î¶¨ËÙ¶ÈÏÂËùĞèµÄ²½ÖèÑ­»·ÊıÁ¿
+//  step_loops_nominal = step_loops;
+//  acc_step_rate = current_block->initial_rate; //Éè¶¨¼ÓËÙ¶È¶ÎµÄËÙ¶È
+//  acceleration_time = calc_timer(acc_step_rate); //¼ÆËã¼ÓËÙ¶È¶ÎÖĞ¶ÏµÄÊ±¼ä
+//   TIM_SetAutoreload(TIM4, acceleration_time);
+//	#ifdef DEBUG_STEPPER
+//	printf("\n***trapezoid_generator_reset***\n");
+//	//Îª±ãÓÚÊı¾İÍ³¼Æ·ÖÎöÈ·±£´òÓ¡¸ñÊ½ÈçÏÂ£ºÈç£º³õÊ¼ËÙ¶È=xxxx  Ê±¼ä²î=
+//	printf("³õÊ¼ËÙ¶È=%6d  ",acc_step_rate);
+//	printf("ÖĞ¶ÏÊ±¼ä=%5ld  ",acceleration_time);
+//	add_interrupt_time += acceleration_time;
+//  printf("Ê±¼ä=%8d\n",add_interrupt_time);
+//	#endif
+//	
+////    SERIAL_ECHO_START;
+////    SERIAL_ECHOPGM("advance :");
+////    SERIAL_ECHO(current_block->advance/256.0);
+////    SERIAL_ECHOPGM("advance rate :");
+////    SERIAL_ECHO(current_block->advance_rate/256.0);
+////    SERIAL_ECHOPGM("initial advance :");
+////  SERIAL_ECHO(current_block->initial_advance/256.0);
+////    SERIAL_ECHOPGM("final advance :");
+////    SERIAL_ECHOLN(current_block->final_advance/256.0);
+//    
+//}
+
+
+//// "The Stepper Driver Interrupt" - This timer interrupt is the workhorse£¨ÖØ¸ººÉ£©.  
+//// It pops blocks from the block_buffer and executes them by pulsing the stepper pins appropriately.
+////´Óblock»º³åÇøÖĞÈ¡³öblock²¢ÊÊµ±µÄÍ¨¹ıÂö³å²½½ø½ÅÖ´ĞĞËüÃÇ
+////¶¨Ê±Æ÷4ÖĞ¶Ï·şÎñ³ÌĞò
+//void TIM4_IRQHandler(void)   //TIM4ÖĞ¶Ï
+//{ 
+//  if(TIM_GetITStatus(TIM4, TIM_IT_Update) != RESET) //¼ì²éÖ¸¶¨µÄTIMÖĞ¶Ï·¢ÉúÓë·ñ:TIM ÖĞ¶ÏÔ´ 
+//  {	  
+//	  uint8_t i; //ºóÃæÓÃµ½µÄ¾Ö²¿±äÁ¿¶¨Òå£¨keilÈí¼şÒªÇó¾Ö²¿±äÁ¿ÔÚ¶¨ÒåÊ±£¬±ØĞë½ô°¤Ç°ÃæµÄ´ó»¨À¨ºÅ£¬²»ÄÜÖ±½Ó¶¨Òåµ½Ê¹ÓÃÖ®Ç°£¬·ñÔò»á±¨´í£©	  
+//	  unsigned short timer;
+//      unsigned short step_rate;
+//	  
+//	  TIM_ClearITPendingBit(TIM4, TIM_IT_Update );  //Çå³ıTIMxµÄÖĞ¶Ï´ı´¦ÀíÎ»:TIM ÖĞ¶ÏÔ´  
+//  
+//	  // If there is no current block, attempt to pop one from the buffer//Èç¹ûÃ»ÓĞµ±Ç°block£¬³¢ÊÔ´Ó»º³åÇøÖĞÈ¡³ö	 
+//	  if (current_block == NULL) // Anything in the buffer?
+//	  {   
+//		current_block = plan_get_current_block(); //´Ó»º³åÇøÖĞ¶ÁÈ¡block
+//		  
+//		if (current_block != NULL) 
+//		{
+//		  current_block->busy = true;  //±ê¼Çblock×´Ì¬Îª·±Ã¦
+//		  trapezoid_generator_reset();  //ÌİĞÎ·¢ÉúÆ÷¸´Î»
+//		  counter_x = -(current_block->step_event_count >> 1);  //step_event_countËùÓĞÖáÒªÒÆ¶¯²½ÊıµÄ×î´óÖµ //²»ÖªµÀÎªÊ²Ã´ÕâÃ´¸³Öµ
+//		  counter_y = counter_x;
+//		  counter_z = counter_x;
+//		  counter_e = counter_x;
+//		  step_events_completed = 0; //ÇåÁã£¬ÓÃÓÚ¼ÇÂ¼µ±Ç°blockµÄÍê³É¶È
+//		  
+//		  #ifdef Z_LATE_ENABLE //£¨·Ç»î¶¯£©
+//			if(current_block->steps_z > 0) {
+//			  enable_z();
+//			  TIM_SetAutoreload(TIM4, 2000-1);//1ms wait  
+//			  return;
+//			}
+//		  #endif  //Z_LATE_ENABLE    
+
+//		} 
+//		else 
+//		{
+//		  TIM_SetAutoreload(TIM4, 2000-1); //Éè¶¨¶¨Ê±Æ÷ÖØĞÂ×°ÔØµÄ¼ÆÊıÖÜÆÚÖµ£¬2000ÔÚ´ËÎª1ms
+//		}    
+//	  } 
+
+//  if (current_block != NULL) 
+//  {
+//    // Set directions,This should be done once during init of trapezoid. Endstops -> interrupt
+//    out_bits = current_block->direction_bits; //¶ÁÈ¡blockÖĞµÄ¸÷ÖáµÄ·½Ïò¡£¸÷ÖáµÄ·½ÏòÖµÊÇ´æ´¢ÔÚÒ»¸öÊıÖĞµÄ
+
+//    // Set direction en check limit switches //Éè¶¨·½Ïò£¬Ê¹ÄÜÏŞÎ»¿ª¹Ø¼ì²â
+//    if ((out_bits & (1<<X_AXIS)) != 0) //È¡³öXÖáµÄ·½Ïò£¨0£ºÕı·½Ïò 1£º¸º·½Ïò£©// stepping along -X axis  //ÑØ-X·½Ïò²½½ø
+//	{   
+//      #if !defined COREXY  
+//        WRITE(X_DIR_PIN,INVERT_X_DIR);//X_DIR_PINa = INVERT_X_DIR;
+//      #endif //NOT COREXY
+//      count_direction[X_AXIS] = -1;
+//      if(check_endstops) //CHECK_ENDSTOPS¿ªÆôÏŞÎ»¿ª¹Ø¼ì²â
+//      {
+//		#if defined X_MIN_PIN  //´¥Åöµ½×îĞ¡Öµ´¦µÄÏŞÎ»¿ª¹Ø
+//          bool x_min_endstop= (READ_INPUT(X_MIN_PIN) != X_MIN_ENDSTOP_INVERTING) ; //Î´´¥Åöµ½ĞĞ³Ì¿ª¹ØÊ±ÖµÎª0£¬´¥Åöµ½ÖµÎª1
+//          if(x_min_endstop && old_x_min_endstop && (current_block->steps_x > 0)) 
+//		      {
+//            endstops_trigsteps[X_AXIS] = count_position[X_AXIS];  //¼ÇÂ¼µ±Ç°Î»ÖÃ
+//            endstop_x_hit=true;  //Éè¶¨xÖáendstopµÄ×´Ì¬
+//            step_events_completed = current_block->step_event_count; //Éè¶¨¸ÃblockÒÑ¾­Íê³É
+//          }
+//          old_x_min_endstop = x_min_endstop;
+//		#endif //defined X_MIN_PIN
+//      }
+//    }
+//    else  // XÖáÕı·½Ïò
+//	{ 
+//      #if !defined COREXY  
+//       WRITE(X_DIR_PIN,!INVERT_X_DIR);//X_DIR_PINa=!INVERT_X_DIR;
+//      #endif //NOT COREXY   
+//      count_direction[X_AXIS]=1;
+//      if(check_endstops) //CHECK_ENDSTOPS¿ªÆôÏŞÎ»¿ª¹Ø¼ì²â 
+//      {  
+//		#if defined X_MAX_PIN
+//          bool x_max_endstop=(READ_INPUT( X_MAX_PIN) != X_MAX_ENDSTOP_INVERTING);
+//          if(x_max_endstop && old_x_max_endstop && (current_block->steps_x > 0))
+//		      {
+//            endstops_trigsteps[X_AXIS] = count_position[X_AXIS];
+//            endstop_x_hit=true;
+//            step_events_completed = current_block->step_event_count;
+//          }
+//          old_x_max_endstop = x_max_endstop;
+//		#endif
+//      }
+//    }
+
+//    if ((out_bits & (1<<Y_AXIS)) != 0)  // YÖá¸º·½Ïò
+//	{   
+//      #if !defined COREXY  //NOT COREXY
+//        WRITE(Y_DIR_PIN,INVERT_Y_DIR);//Y_DIR_PINa=INVERT_Y_DIR;
+//      #endif
+//      count_direction[Y_AXIS] = -1;
+//      if(check_endstops) //CHECK_ENDSTOPS¿ªÆôÏŞÎ»¿ª¹Ø¼ì²â
+//      {
+//        #if defined(Y_MIN_PIN)
+//          bool y_min_endstop=READ_INPUT( Y_MIN_PIN) != Y_MIN_ENDSTOP_INVERTING;
+//          if(y_min_endstop && old_y_min_endstop && (current_block->steps_y > 0)) 
+//		      {
+//            endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
+//            endstop_y_hit=true;
+//            step_events_completed = current_block->step_event_count;
+//          }
+//          old_y_min_endstop = y_min_endstop;
+//        #endif
+//      }
+//    }
+//    else  //YÖáÕı·½Ïò 
+//	{ 
+//      #if !defined COREXY  //NOT COREXY
+//        WRITE (Y_DIR_PIN,!INVERT_Y_DIR);//Y_DIR_PINa=!INVERT_Y_DIR;
+//      #endif
+//      count_direction[Y_AXIS]=1;
+//      if(check_endstops) //CHECK_ENDSTOPS¿ªÆôÏŞÎ»¿ª¹Ø¼ì²â
+//      {
+//        #if defined(Y_MAX_PIN)// && Y_MAX_PIN > -1
+//          bool y_max_endstop=READ_INPUT( Y_MAX_PIN) != Y_MAX_ENDSTOP_INVERTING;
+//          if(y_max_endstop && old_y_max_endstop && (current_block->steps_y > 0))
+//		      {
+//            endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
+//            endstop_y_hit=true;
+//            step_events_completed = current_block->step_event_count;
+//          }
+//          old_y_max_endstop = y_max_endstop;
+//        #endif
+//      }
+//    } 
+//    
+//    if ((out_bits & (1<<Z_AXIS)) != 0) //ZÖá¸º·½Ïò
+//	{ 
+//      WRITE(Z_DIR_PIN,INVERT_Z_DIR);//Z_DIR_PINa=INVERT_Z_DIR;     
+//      count_direction[Z_AXIS] = -1;
+//      if(check_endstops) //CHECK_ENDSTOPS¿ªÆôÏŞÎ»¿ª¹Ø¼ì²â
+//      {
+//        #if defined(Z_MIN_PIN)
+//          bool z_min_endstop=READ_INPUT( Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING;
+//          if(z_min_endstop && old_z_min_endstop && (current_block->steps_z > 0)) 
+//		      {
+//            endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
+//            endstop_z_hit=true;
+//            step_events_completed = current_block->step_event_count;
+//          }
+//          old_z_min_endstop = z_min_endstop;
+//        #endif
+//      }
+//    }
+//    else //ZÖáÕı·½Ïò 
+//	{ 
+//      WRITE(Z_DIR_PIN,!INVERT_Z_DIR);//Z_DIR_PINa=!INVERT_Z_DIR;
+//      count_direction[Z_AXIS] = 1;
+//      if(check_endstops) //CHECK_ENDSTOPS¿ªÆôÏŞÎ»¿ª¹Ø¼ì²â
+//      {
+//        #if defined(Z_MAX_PIN)
+//          bool z_max_endstop=READ_INPUT( Z_MAX_PIN) != Z_MAX_ENDSTOP_INVERTING;
+//          if(z_max_endstop && old_z_max_endstop && (current_block->steps_z > 0)) 
+//		      {
+//            endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
+//            endstop_z_hit=true;
+//            step_events_completed = current_block->step_event_count;
+//          }
+//          old_z_max_endstop = z_max_endstop;
+//        #endif
+//      }
+//    }
+//	
+//    #ifndef ADVANCE	  //£¨·Ç»î¶¯£©
+//	
+//      if ((out_bits & (1<<E_AXIS)) != 0) {  // -direction
+//        REV_E_DIR();
+//        count_direction[E_AXIS]=-1;
+//      }
+//      else { // +direction
+//        NORM_E_DIR();
+//        count_direction[E_AXIS]=1;
+//      } 
+//    #endif //!ADVANCE   
+//	  
+////Õı³£Çé¿öÏÂÒ»¸öÖĞ¶ÏÖÜÆÚ²½½øµç»ú×ªÒ»²½£¬¼´ÖĞ¶ÏÖÜÆÚµÄ¶¨Ê±ÆµÂÊ¼´Îª²½½øµç»úµÄÂö³åÆµÂÊ¡£
+////blockÖĞµÄstep_event_count£¨²½ÊÂ¼ş¼ÆÊı£º¸÷ÖáÖĞÒªÒÆ¶¯²½ÊıµÄ×î´óÖµ£©ÕıÊÇÍê³É¸Ãblock	  
+//	// Take multiple steps per interrupt (For high speed moves)	//Ã¿¸öÖĞ¶ÏÖÜÆÚ×ß¶à²½	
+//    for(i=0; i < step_loops; i++)  //step_loops»áÒÀ¾İclac_timer()º¯ÊıÀ´È·¶¨
+//	{  
+
+//      #ifdef ADVANCE  //£¨·Ç»î¶¯£©	  
+//      counter_e += current_block->steps_e;
+//      if (counter_e > 0) {
+//        counter_e -= current_block->step_event_count;
+//        if ((out_bits & (1<<E_AXIS)) != 0) { // - direction
+//          e_steps[current_block->active_extruder]--;
+//        }
+//        else {
+//          e_steps[current_block->active_extruder]++;
+//        }
+//      }   
+//	  
+//      #endif //ADVANCE
+
+//     
+//	  #if !defined COREXY   
+//        counter_x += current_block->steps_x;
+//        if (counter_x > 0)   //steps´óÓÚstep_event_countµÄÒ»°ë
+//		    {
+//          WRITE(X_STEP_PIN,!INVERT_X_STEP_PIN);//X_STEP_PINa= !INVERT_X_STEP_PIN; //true
+//          counter_x -= current_block->step_event_count;  //Õâ¾ä²»ÖªµÀÊÇÊ²Ã´ÒâË¼£¿
+//          count_position[X_AXIS]+=count_direction[X_AXIS];  //¼ÆËãXÖáµÄµ±Ç°Î»ÖÃ 
+//           WRITE(X_STEP_PIN,INVERT_X_STEP_PIN);//X_STEP_PINa= INVERT_X_STEP_PIN; //false
+////					printf("counter_y=%ld\n",counter_y);
+////					printf("count_position[Y_AXIS]=%ld\n",count_position[Y_AXIS]);
+////					printf("X move one step\n\n");
+//        }
+//  
+//        counter_y += current_block->steps_y;
+////				printf("counter_y=%ld\n",counter_y);
+//        if (counter_y > 0) 
+//		    {
+//           WRITE(Y_STEP_PIN,!INVERT_Y_STEP_PIN);//Y_STEP_PINa= !INVERT_Y_STEP_PIN; //true
+//          counter_y -= current_block->step_event_count; 
+//          count_position[Y_AXIS]+=count_direction[Y_AXIS]; //¼ÆËãYÖáµÄµ±Ç°Î»ÖÃ 			
+//           WRITE(Y_STEP_PIN,INVERT_Y_STEP_PIN);//Y_STEP_PINa= INVERT_Y_STEP_PIN; //false
+////					printf("counter_y=%ld\n",counter_y);
+////					printf("count_position[Y_AXIS]=%ld\n",count_position[Y_AXIS]);
+////					printf("Y move one step\n");
+//        }
+//      #endif  //!defined COREXY 
+//  
+//      counter_z += current_block->steps_z;
+//      if (counter_z > 0) 
+//	    {
+//         WRITE(Z_STEP_PIN,!INVERT_Z_STEP_PIN);//Z_STEP_PINa= !INVERT_Z_STEP_PIN; //true      
+//        counter_z -= current_block->step_event_count;
+//        count_position[Z_AXIS]+=count_direction[Z_AXIS]; //¼ÆËãZÖáµÄµ±Ç°Î»ÖÃ 
+//         WRITE(Z_STEP_PIN,INVERT_Z_STEP_PIN);//Z_STEP_PINa= INVERT_Z_STEP_PIN; //false
+//      }
+
+//      #ifndef ADVANCE  	  
+//        counter_e += current_block->steps_e;
+//        if (counter_e > 0) 
+//		    {
+//          WRITE_E_STEP(!INVERT_E_STEP_PIN); //true
+//          counter_e -= current_block->step_event_count;
+//          count_position[E_AXIS]+=count_direction[E_AXIS]; //¼ÆËãEÖáµÄµ±Ç°Î»ÖÃ 
+//          WRITE_E_STEP(INVERT_E_STEP_PIN); //false
+//        }		
+//      #endif //!ADVANCE	 
+//      step_events_completed += 1;   //¸üĞÂblockµÄ½ø¶È
+//      if(step_events_completed >= current_block->step_event_count) break;
+//    }
+//	   
+//	// Calculare new timer value //¼ÆËãĞÂµÄ¶¨Ê±ÖĞ¶ÏµÄÊ±¼ä  
+//    if (step_events_completed <= (unsigned long int)current_block->accelerate_until) //ÌİĞÎ¼ÓËÙ½×¶Î
+//	{ 
+//       MultiU24X24toH16(acc_step_rate, acceleration_time, current_block->acceleration_rate);
+//       acc_step_rate += current_block->initial_rate;
+//      
+//      // upper limit //¼ÓËÙ¶ÈµÄÉÏÏŞÖµ
+//      if(acc_step_rate > current_block->nominal_rate)
+//         acc_step_rate = current_block->nominal_rate;
+
+//      // step_rate to timer interval //²½½øµç»úÆµÂÊ¶ÔÓ¦µÄÊ±¼ä¼ä¸ô
+//      timer = calc_timer(acc_step_rate); //¸üĞÂÏÂ´ÎÖĞ¶ÏµÄÊ±¼ä
+//      TIM_SetAutoreload(TIM4, timer);
+//      acceleration_time += timer;
+//			#ifdef DEBUG_STEPPER
+//				//printf("****¼ÓËÙ½×¶Î***\n");
+//			  //Îª±ãÓÚÊı¾İÍ³¼Æ·ÖÎöÈ·±£´òÓ¡¸ñÊ½ÈçÏÂ£ºÈç£º³õÊ¼ËÙ¶È=xxxx  Ê±¼ä²î=
+//				printf("¼ÓËÙËÙ¶È=%6d  ",acc_step_rate); //Ã¿´ÎÖĞ¶ÏµÄ²½½øµç»úËÙ¶È£º£¨step/s£©
+//				printf("ÖĞ¶ÏÊ±¼ä=%5d  ",timer);
+//			  add_interrupt_time += timer;
+//				printf("Ê±¼ä=%8d\n",add_interrupt_time);
+//			#endif
+//			
+//      #ifdef ADVANCE  //£¨·Ç»î¶¯£© 
+//        for(i=0; i < step_loops; i++) 
+//	    {
+//          advance += advance_rate;
+//        }
+//        //if(advance > current_block->advance) advance = current_block->advance;
+//        // Do E steps + advance steps
+//        e_steps[current_block->active_extruder] += ((advance >>8) - old_advance);
+//        old_advance = advance >>8;        
+//      #endif
+//		
+//    } 
+//    else if (step_events_completed > (unsigned long int)current_block->decelerate_after) //ÌİĞÎ¼õËÙ½×¶Î
+//	{
+//	      MultiU24X24toH16(step_rate, deceleration_time, current_block->acceleration_rate);
+//	      
+//	      if(step_rate > acc_step_rate) // Check step_rate stays positive
+//		  { 
+//	        step_rate = current_block->final_rate;
+//	      }
+//	      else 
+//		  {
+//	        step_rate = acc_step_rate - step_rate; //¸üĞÂÄ¿Ç°µÄËÙ¶È// Decelerate from aceleration end point.//´Ó¼ÓËÙ¶È½áÊøµã¿ªÊ¼¼õËÙ
+//	      }
+//	
+//	      // lower limit
+//	      if(step_rate < current_block->final_rate) 
+//			  step_rate = current_block->final_rate;
+//	        	
+//	      // step_rate to timer interval
+//	      timer = calc_timer(step_rate);
+//	      TIM_SetAutoreload(TIM4, timer); //¸üĞÂÏÂ´ÎÖĞ¶ÏµÄÊ±¼ä
+//	      deceleration_time += timer;
+//				#ifdef DEBUG_STEPPER
+//					//printf("****¼õËÙ½×¶Î***\n");
+//					//Îª±ãÓÚÊı¾İÍ³¼Æ·ÖÎöÈ·±£´òÓ¡¸ñÊ½ÈçÏÂ£ºÈç£º³õÊ¼ËÙ¶È=xxxx  Ê±¼ä²î=
+//					printf("¼õËÙËÙ¶È=%6d  ",step_rate); //Ã¿´ÎÖĞ¶ÏµÄ²½½øµç»úËÙ¶È£º£¨step/s£©
+//					printf("ÖĞ¶ÏÊ±¼ä=%5d  ",timer);
+//				  add_interrupt_time += timer;
+//					printf("Ê±¼ä=%8d\n",add_interrupt_time);
+//			  #endif
+
+//	      #ifdef ADVANCE   
+//	        for(i=0; i < step_loops; i++) {
+//	          advance -= advance_rate;
+//	        }
+//	        if(advance < final_advance) advance = final_advance;
+//	        // Do E steps + advance steps
+//	        e_steps[current_block->active_extruder] += ((advance >>8) - old_advance);
+//	        old_advance = advance >>8;   			
+//	      #endif //ADVANCE	
+//	}
+//	else 
+//	{
+//	   TIM_SetAutoreload(TIM4,TIMER4_nominal-1);
+//	   // ensure we're running at the correct step rate, even if we just came off an acceleration
+//     step_loops = step_loops_nominal;
+//		#ifdef DEBUG_STEPPER
+//			//printf("****ÔÈËÙ½×¶Î***\n");
+//			//Îª±ãÓÚÊı¾İÍ³¼Æ·ÖÎöÈ·±£´òÓ¡¸ñÊ½ÈçÏÂ£ºÈç£º³õÊ¼ËÙ¶È=xxxx  Ê±¼ä²î=
+//			printf("ÔÈËÙËÙ¶È=%6ld  ",current_block->nominal_rate); //Ã¿´ÎÖĞ¶ÏµÄ²½½øµç»úËÙ¶È£º£¨step/s£©
+//			printf("ÖĞ¶ÏÊ±¼ä=%5d  ",TIMER4_nominal);
+//			add_interrupt_time += TIMER4_nominal;
+//			printf("Ê±¼ä=%8d\n",add_interrupt_time);
+//		#endif		
+//	}
+//    // If current block is finished, reset pointer //µ±Ç°blockÖ´ĞĞÍê£¬¸´Î»Ö¸Õë
+//    if (step_events_completed >= current_block->step_event_count) 
+//	{
+//      current_block = NULL;
+//      plan_discard_current_block();
+//    }   
+//  } 
+// }
+//}
+
+//void st_init(void)
+//{	
+//     //ÏÂÃæÕâÁ½¸ö×¢ÊÍµôµÄº¯Êı£¬ÔÚÊµ¼ÊÖĞ²¢Î´ÓÃµ½£¬ºÍÕâÁ½¿éÏà¹ØµÄº¯ÊıÔÚ×îºó£¬ºóÃæÒ²ÓĞÏàÓ¦ËµÃ÷	
+////	 digipot_init(); //Initialize Digipot Motor Current //³õÊ¼»¯Êı×ÖµçÎ»Æ÷£¨ÓÃÓÚ²½½øµç»úÇı¶¯ÉÏµ÷½ÚµçÁ÷£©
+////   microstep_init(); //Initialize Microstepping Pins  //³õÊ¼»¯Ï¸·ÖÒı½Å£¨ÓÃÓÚÉèÖÃ²½½øµç»úÇı¶¯µÄÏ¸·ÖÄ£Ê½£©
+////Ä¬ÈÏ´ÓÓ²¼şÉÏ½«²½½øµç»úÇı¶¯Ï¸·ÖÄ£Ê½ÉèÖÃÎª16Ï¸·Ö£¬µçÁ÷Í¨¹ıµ÷½ÚÇı¶¯°åÉÏµÄÄ£ÄâµçÎ»Æ÷À´µ÷½Ú	
+//	
+//   //³õÊ¼»¯²½½øµç»úÒı½Å²¢½«²½½øµç»úÉèÎª¹Ø±Õ×´Ì¬
+//	 GPIO_InitTypeDef         GPIO_InitStructure;	
+//	 RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOE|RCC_APB2Periph_GPIOF, ENABLE);	 
+//	
+//	 GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		 //ÍÆÍìÊä³ö
+//	 GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;	 //ËÙ¶ÈÎª50MHz
+//   
+//	//³õÊ¼»¯XÖá²½½øµç»úÇı¶¯µÄÒı½Å
+//	 GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8|GPIO_Pin_9|GPIO_Pin_10;	
+//	 GPIO_Init(GPIOF, &GPIO_InitStructure);
+//	  WRITE(X_STEP_PIN,INVERT_X_STEP_PIN);//X_STEP_PINa=INVERT_X_STEP_PIN; //Âö³å½Å³õÊ¼»¯Îªfalse
+//   disable_x();	//¹Ø±ÕXÖá²½½øµç»úÊ¹ÄÜ
+//  
+//	 //³õÊ¼»¯YÖá²½½øµç»úÇı¶¯µÄÒı½Å
+//	 GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5|GPIO_Pin_6|GPIO_Pin_7;		
+//	 GPIO_Init(GPIOF, &GPIO_InitStructure);	
+//	  WRITE(Y_STEP_PIN,INVERT_Y_STEP_PIN);//Y_STEP_PINa=INVERT_Y_STEP_PIN; //Âö³å½Å³õÊ¼»¯Îªfalse
+//	 disable_y();	//¹Ø±ÕYÖá²½½øµç»úÊ¹ÄÜ
+
+//   //³õÊ¼»¯ZÖá²½½øµç»úÇı¶¯µÄÒı½Å
+//	 GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2|GPIO_Pin_3|GPIO_Pin_4;			
+//	 GPIO_Init(GPIOF, &GPIO_InitStructure);
+//	  WRITE(Z_STEP_PIN,INVERT_Z_STEP_PIN);//Z_STEP_PINa=INVERT_Z_STEP_PIN; //Âö³å½Å³õÊ¼»¯Îªfalse
+//   disable_z();	//¹Ø±ÕZÖá²½½øµç»úÊ¹ÄÜ	 
+
+//   //³õÊ¼»¯E0Öá²½½øµç»úÇı¶¯µÄÒı½Å
+//	 GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0|GPIO_Pin_1;			
+//	 GPIO_Init(GPIOF, &GPIO_InitStructure);
+//	 GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;			
+//	 GPIO_Init(GPIOE, &GPIO_InitStructure);
+//	   WRITE(E0_STEP_PIN,INVERT_E_STEP_PIN);//E0_STEP_PINa=INVERT_E_STEP_PIN; //Âö³å½Å³õÊ¼»¯Îªfalse
+//   disable_e0();	//¹Ø±Õe0Öá²½½øµç»úÊ¹ÄÜ	 
+//   
+//	 //³õÊ¼»¯E1Öá²½½øµç»úÇı¶¯µÄÒı½Å
+//	 GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3|GPIO_Pin_4|GPIO_Pin_5;			
+//	 GPIO_Init(GPIOE, &GPIO_InitStructure);
+//	  WRITE(E1_STEP_PIN,INVERT_E_STEP_PIN);//E1_STEP_PINa=INVERT_E_STEP_PIN; //Âö³å½Å³õÊ¼»¯Îªfalse
+//   disable_e1();	//¹Ø±Õe1Öá²½½øµç»úÊ¹ÄÜ	 
+
+
+//	//³õÊ¼»¯ÏŞÎ»¿ª¹ØÒı½Å²¢½«ÏŞÎ»¿ª¹ØµÄ³õÊ¼×´Ì¬ÉèÎªfalse£¨¸ßµçÆ½´¥·¢£©
+// 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_GPIOC,ENABLE);//Ê¹ÄÜPORTA,PORTCÊ±ÖÓ
+
+//  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU; //ÉèÖÃ³ÉÉÏÀ­ÊäÈë
+//	//³õÊ¼»¯ÏŞÎ»¿ª¹ØXµÄÒı½Å
+//	GPIO_InitStructure.GPIO_Pin  = GPIO_Pin_4|GPIO_Pin_5;
+// 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+//	
+//  //³õÊ¼»¯ÏŞÎ»¿ª¹ØYµÄÒı½Å
+//	GPIO_InitStructure.GPIO_Pin  = GPIO_Pin_6|GPIO_Pin_7;
+// 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+//	
+//	//³õÊ¼»¯ÏŞÎ»¿ª¹ØZµÄÒı½Å
+//	GPIO_InitStructure.GPIO_Pin  = GPIO_Pin_4|GPIO_Pin_5;
+// 	GPIO_Init(GPIOC, &GPIO_InitStructure); 	 	  
+//  
+//	 
+//  //³õÊ¼»¯¶¨Ê±Æ÷TIM4£¬
+//	//¶¨Ê±Ê±ÖÓÆµÂÊÎª72M/£¨35+1£©=2MHZ 
+//	//×Ô¶¯ÖØ×°ÔØ¼Ä´æÆ÷ÖÜÆÚµÄÖµÎª0x4000
+//	TIM4_Int_Init(0x4000,35);
+// 	
+//  ENABLE_STEPPER_DRIVER_INTERRUPT();  
+//  
+//  enable_endstops(1); //¼¤»îÏŞÎ»¿ª¹Ø¼ì²â // Start with endstops active. After homing they can be disabled
+// // sei();¿ªÆôÈ«¾ÖÖĞ¶Ï£¬ºóÃæÕÒÒ»ÏÂÔÚSTM32ÖĞ¿ªÆôÈ«¾ÖÖĞ¶ÏµÄº¯ÊıÀ´Ìæ´ú£¬ËÆºõÃ»ÓĞ³ÌĞòÒ²¿ÉÕı³£ÔËĞĞ
+//}
+
+
+//// Block until all buffered steps are executed
+//void st_synchronize(void)
+//{
+//    while( blocks_queued()) {
+//    manage_heater();
+//    manage_inactivity();
+////		lcd_update();
+////	  interface_update(); //ÆÁÄ»½çÃæ¸üĞÂ
+//  }
+//}
+
+//void st_set_position(const long x, const long y, const long z, const long e)
+//{
+//  CRITICAL_SECTION_START;
+//  count_position[X_AXIS] = x;
+//  count_position[Y_AXIS] = y;
+//  count_position[Z_AXIS] = z;
+//  count_position[E_AXIS] = e;
+//  CRITICAL_SECTION_END;
+//}
+
+//void st_set_e_position(const long e)
+//{
+//  CRITICAL_SECTION_START;
+//  count_position[E_AXIS] = e;
+//  CRITICAL_SECTION_END;
+//}
+
+//long st_get_position(uint8_t axis)
+//{
+//  long count_pos;
+//  CRITICAL_SECTION_START;
+//  count_pos = count_position[axis];
+//  CRITICAL_SECTION_END;
+//  return count_pos;
+//}
+
+//void finishAndDisableSteppers(void)
+//{
+//  st_synchronize(); 
+//  disable_x(); 
+//  disable_y(); 
+//  disable_z(); 
+//  disable_e0(); 
+//  disable_e1(); 
+//}
+
+//void quickStop(void)
+//{
+//  DISABLE_STEPPER_DRIVER_INTERRUPT();
+//  while(blocks_queued())
+//    plan_discard_current_block();
+//  current_block = NULL;
+//  ENABLE_STEPPER_DRIVER_INTERRUPT();
+//}
+
+////ÏÂÃædigipot_xxx()µÄº¯Êı¶¼ÊÇºÍÊı×ÖµçÎ»Æ÷£¨ÓÃÀ´µ÷½ÚÇı¶¯ICµÄµçÁ÷£©ÅäÖÃÏà¹ØµÄº¯Êı£¬ÏÖÔÚ²½½øµç»úÇı¶¯°åÉÏ
+////¶àÓÃµÄÊÇÄ£ÄâµçÎ»Æ÷£¨»¬¶¯±ä×èÆ÷£©£¬Òò´ËÏÂÃædigipot_xxx()º¯Êı²¢Ã»ÓÃµ½£¬ºóÃæ¿´ÏÂÈçºÎÓÅ»¯ÕâĞ©º¯Êı¡£
+//void digipot_init(void) //Initialize Digipot Motor Current //¿Õº¯Êı
+//{
+//  /*
+//	const uint8_t digipot_motor_current[] = DIGIPOT_MOTOR_CURRENT;  
+//	int i;     
+//    for(i=0;i<=4;i++) 
+//      digipot_current(i,digipot_motor_current[i]);
+//	*/
+//}
+
+//void digipot_current(uint8_t driver, uint8_t current) //¿Õº¯Êı
+//{
+//	/*
+//    const uint8_t digipot_ch[] = DIGIPOT_CHANNELS;
+////	printf("%d:%d\r\n",digipot_ch[driver],current);
+//    digitalPotWrite(digipot_ch[driver], (uint8_t)current);
+//	*/
+//}
+
+//void digitalPotWrite(uint8_t address, uint8_t value) //¿Õº¯Êı
+//{
+///*
+//    DIGIPOTSS_PIN=1; // take the SS pin low to select the chip
+//    SPI1_ReadWriteByte(address); //  send in the address and value via SPI:
+//    SPI1_ReadWriteByte(value);
+//    DIGIPOTSS_PIN=0; // take the SS pin high to de-select the chip:
+//	*/
+//}
+
+////´ÓÕâÒ»Ö±µ½×îºó¶¼ÊÇÅäÖÃ²½½øµç»úÇı¶¯£¨A4988/A4982£©Ï¸·ÖÄ£Ê½Ïà¹ØµÄº¯Êı£¬Êµ¼ÊÖĞ¿ÉÍ¨¹ıMS1¡¢MS2¡¢MS3
+////¶Ì½ÓÀ´ÉèÖÃÏ¸·ÖÄ£Ê½£¬ÕâĞ©º¯Êı²¢Ã»ÓÃµ½Òò´ËÕâĞ©º¯ÊıµÄÄÚÈİ¶¼¿ÉÎª¿Õ£¬ºóÃæ¿´Ò»Ğ©ÈçºÎÓÅ»¯Õâ²¿·ÖÄÚÈİ
+//void microstep_init(void)  //¿Õº¯Êı
+//{ 
+//	/*
+//	int i;
+//  for(i=0;i<=4;i++) microstep_mode(i,8);
+//	*/
+//}
+
+//void microstep_ms(uint8_t driver, int8_t ms1, int8_t ms2, int8_t ms3) //¿Õº¯Êı
+//{
+//	/*
+//  if(ms1 > -1) switch(driver)
+//  {
+//    case 0:X_MS1_PIN=ms1 ; break;
+//    case 1:Y_MS1_PIN=ms1 ; break;
+//    case 2:Z_MS1_PIN=ms1 ; break;
+//    case 3:E0_MS1_PIN=ms1 ; break;
+//    case 4:E1_MS1_PIN=ms1 ; break;
+//	default:  break;
+//  }
+//  if(ms2 > -1) 
+//  switch(driver)
+//  {
+//    case 0:X_MS2_PIN=ms2 ; break;
+//    case 1:Y_MS2_PIN=ms2 ; break;
+//    case 2:Z_MS2_PIN=ms2 ; break;
+//    case 3:E0_MS2_PIN=ms2 ; break;
+//    case 4:E1_MS2_PIN=ms2 ; break;
+//	default:  break;
+//  }
+//    if(ms3 > -1) switch(driver)
+//  {
+//    case 0:X_MS3_PIN=ms3 ; break;
+//    case 1:Y_MS3_PIN=ms3 ; break;
+//    case 2:Z_MS3_PIN=ms3 ; break;
+//    case 3:E0_MS3_PIN=ms3 ; break;
+//    case 4:E1_MS3_PIN=ms3 ; break;
+//	default:  break;
+//  }
+//	*/
+//}
+
+//void microstep_mode(uint8_t driver, uint8_t stepping_mode) //¿Õº¯Êı
+//{ 
+//	/*
+//	switch(driver)
+//  {
+//    case 0: subsection_x_value=stepping_mode; break;
+//    case 1: subsection_y_value=stepping_mode; break;
+//    case 2: subsection_z_value=stepping_mode; break;
+//    case 3: subsection_e0_value=stepping_mode; break;
+//    case 4: subsection_e1_value=stepping_mode; break;
+//	default:  break;
+//  }
+//  switch(stepping_mode)
+//  {
+//    case 1: microstep_ms(driver,MICROSTEP1); break;
+//    case 2: microstep_ms(driver,MICROSTEP2); break;
+//    case 4: microstep_ms(driver,MICROSTEP4); break;
+//    case 8: microstep_ms(driver,MICROSTEP8); break;
+//    case 16: microstep_ms(driver,MICROSTEP16); break;
+//    case 32: microstep_ms(driver,MICROSTEP32); break;
+//    case 64: microstep_ms(driver,MICROSTEP64); break;
+//    case 128: microstep_ms(driver,MICROSTEP128); break;
+//	default:  break;
+//  }
+//	*/
+//}
+//void microstep_readings(void)
+//{
+//	printf("Motor_Subsection \n");
+//	printf("X: %d\n",subsection_x_value);
+//	printf("Y: %d\n",subsection_y_value);
+//	printf("Z: %d\n",subsection_z_value);
+//	printf("E0: %d\n",subsection_e0_value);
+//	printf("E1: %d\n",subsection_e1_value);
+//}
+
 

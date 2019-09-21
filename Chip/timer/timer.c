@@ -1,6 +1,8 @@
 #include "timer.h"
+#include "key.h"
 
 volatile unsigned long SystemCurrentTime = 0;  //用于记录系统当前时间
+uint8_t keyPressed;
 
 //通用定时器2中断初始化
 //该定时中断用于按键检测
@@ -28,6 +30,16 @@ void TIM2_Int_Init(u16 arr,u16 psc)
 
 	TIM_Cmd(TIM2, ENABLE);  //使能TIMx外设
 							 
+}
+
+//定时器2中断服务程序（用于按键检测）
+void TIM2_IRQHandler(void)   //TIM3中断
+{
+	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) //检查指定的TIM中断发生与否:TIM 中断源 
+		{
+		  TIM_ClearITPendingBit(TIM2, TIM_IT_Update  );  //清除TIMx的中断待处理位:TIM 中断源 
+		  keyPressed = KEY_Scan(0);
+		} 
 }
 
 //通用定时器3中断初始化

@@ -13,16 +13,16 @@
       <pCCUsed>5060183::V5.06 update 2 (build 183)::ARMCC</pCCUsed>
       <TargetOption>
         <TargetCommonOption>
-          <Device>STM32F103RC</Device>
+          <Device>STM32F103ZE</Device>
           <Vendor>STMicroelectronics</Vendor>
           <PackID>Keil.STM32F1xx_DFP.2.1.0</PackID>
           <PackURL>http://www.keil.com/pack/</PackURL>
-          <Cpu>IRAM(0x20000000,0xC000) IROM(0x08000000,0x40000) CPUTYPE("Cortex-M3") CLOCK(12000000) ELITTLE</Cpu>
+          <Cpu>IRAM(0x20000000,0x10000) IROM(0x08000000,0x80000) CPUTYPE("Cortex-M3") CLOCK(12000000) ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
           <StartupFile></StartupFile>
-          <FlashDriverDll>UL2CM3(-S0 -C0 -P0 -FD20000000 -FC1000 -FN1 -FF0STM32F10x_512 -FS08000000 -FL080000 -FP0($$Device:STM32F103RC$Flash\STM32F10x_512.FLM))</FlashDriverDll>
+          <FlashDriverDll>UL2CM3(-S0 -C0 -P0 -FD20000000 -FC1000 -FN1 -FF0STM32F10x_512 -FS08000000 -FL080000 -FP0($$Device:STM32F103ZE$Flash\STM32F10x_512.FLM))</FlashDriverDll>
           <DeviceId>0</DeviceId>
-          <RegisterFile>$$Device:STM32F103RC$Device\Include\stm32f10x.h</RegisterFile>
+          <RegisterFile>$$Device:STM32F103ZE$Device\Include\stm32f10x.h</RegisterFile>
           <MemoryEnv></MemoryEnv>
           <Cmp></Cmp>
           <Asm></Asm>
@@ -32,7 +32,7 @@
           <SLE66CMisc></SLE66CMisc>
           <SLE66AMisc></SLE66AMisc>
           <SLE66LinkerMisc></SLE66LinkerMisc>
-          <SFDFile>$$Device:STM32F103RC$SVD\STM32F103xx.svd</SFDFile>
+          <SFDFile>$$Device:STM32F103ZE$SVD\STM32F103xx.svd</SFDFile>
           <bCustSvd>0</bCustSvd>
           <UseEnv>0</UseEnv>
           <BinPath></BinPath>
@@ -243,12 +243,12 @@
               <IRAM>
                 <Type>0</Type>
                 <StartAddress>0x20000000</StartAddress>
-                <Size>0xc000</Size>
+                <Size>0x10000</Size>
               </IRAM>
               <IROM>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0x40000</Size>
+                <Size>0x80000</Size>
               </IROM>
               <XRAM>
                 <Type>0</Type>
@@ -273,7 +273,7 @@
               <OCR_RVCT4>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0x40000</Size>
+                <Size>0x80000</Size>
               </OCR_RVCT4>
               <OCR_RVCT5>
                 <Type>1</Type>
@@ -298,7 +298,7 @@
               <OCR_RVCT9>
                 <Type>0</Type>
                 <StartAddress>0x20000000</StartAddress>
-                <Size>0xc000</Size>
+                <Size>0x10000</Size>
               </OCR_RVCT9>
               <OCR_RVCT10>
                 <Type>0</Type>
@@ -334,7 +334,7 @@
               <MiscControls></MiscControls>
               <Define>USE_STDPERIPH_DRIVER,STM32F10X_HD</Define>
               <Undefine></Undefine>
-              <IncludePath>..\Libraries\CMSIS;..\Libraries\STM32F10x_StdPeriph_Driver\inc;..\Chip\chip;..\Chip\delay;..\Chip\usart;..\Chip\timer;..\Chip\adc;..\Chip\spi;..\Board\flash;..\Stmarlin\Gcode;..\Stmarlin\MainLib;..\Stmarlin\SerialLib;..\Stmarlin\ConfigurationLib;..\Stmarlin\StepperLib;..\Stmarlin\TempretureLib;..\Stmarlin\PlanMotionLib;..\User</IncludePath>
+              <IncludePath>..\Libraries\CMSIS;..\Libraries\STM32F10x_StdPeriph_Driver\inc;..\Chip\chip;..\Chip\delay;..\Chip\usart;..\Chip\timer;..\Chip\adc;..\Chip\spi;..\Board\flash;..\Stmarlin\Gcode;..\Stmarlin\MainLib;..\Stmarlin\SerialLib;..\Stmarlin\ConfigurationLib;..\Stmarlin\StepperLib;..\Stmarlin\TempretureLib;..\Stmarlin\PlanMotionLib;..\User;..\Libraries\FATFS\src;..\Libraries\FATFS\exfuns;..\Board\sdio;..\Libraries\MALLOC;..\Stmarlin\SdLib;..\Board\lcd12864;..\Board\key;..\Stmarlin\LcdLib</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -562,10 +562,57 @@
               <FileType>1</FileType>
               <FilePath>..\Board\flash\flash.c</FilePath>
             </File>
+            <File>
+              <FileName>sdio_sdcard.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Board\sdio\sdio_sdcard.c</FilePath>
+            </File>
+            <File>
+              <FileName>lcd12864.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Board\lcd12864\lcd12864.c</FilePath>
+            </File>
+            <File>
+              <FileName>key.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Board\key\key.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>MALLOC</GroupName>
+          <Files>
+            <File>
+              <FileName>malloc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\MALLOC\malloc.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>FATFS</GroupName>
+          <Files>
+            <File>
+              <FileName>diskio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FATFS\src\diskio.c</FilePath>
+            </File>
+            <File>
+              <FileName>ff.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FATFS\src\ff.c</FilePath>
+            </File>
+            <File>
+              <FileName>cc936.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FATFS\src\option\cc936.c</FilePath>
+            </File>
+            <File>
+              <FileName>exfuns.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FATFS\exfuns\exfuns.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>STMARLIN</GroupName>
@@ -604,6 +651,16 @@
               <FileName>temperature.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Stmarlin\TempretureLib\temperature.c</FilePath>
+            </File>
+            <File>
+              <FileName>cardreader.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Stmarlin\SdLib\cardreader.c</FilePath>
+            </File>
+            <File>
+              <FileName>lcd12864_menu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Stmarlin\LcdLib\lcd12864_menu.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1189,10 +1246,57 @@
               <FileType>1</FileType>
               <FilePath>..\Board\flash\flash.c</FilePath>
             </File>
+            <File>
+              <FileName>sdio_sdcard.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Board\sdio\sdio_sdcard.c</FilePath>
+            </File>
+            <File>
+              <FileName>lcd12864.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Board\lcd12864\lcd12864.c</FilePath>
+            </File>
+            <File>
+              <FileName>key.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Board\key\key.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>MALLOC</GroupName>
+          <Files>
+            <File>
+              <FileName>malloc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\MALLOC\malloc.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>FATFS</GroupName>
+          <Files>
+            <File>
+              <FileName>diskio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FATFS\src\diskio.c</FilePath>
+            </File>
+            <File>
+              <FileName>ff.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FATFS\src\ff.c</FilePath>
+            </File>
+            <File>
+              <FileName>cc936.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FATFS\src\option\cc936.c</FilePath>
+            </File>
+            <File>
+              <FileName>exfuns.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FATFS\exfuns\exfuns.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>STMARLIN</GroupName>
@@ -1231,6 +1335,16 @@
               <FileName>temperature.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Stmarlin\TempretureLib\temperature.c</FilePath>
+            </File>
+            <File>
+              <FileName>cardreader.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Stmarlin\SdLib\cardreader.c</FilePath>
+            </File>
+            <File>
+              <FileName>lcd12864_menu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Stmarlin\LcdLib\lcd12864_menu.c</FilePath>
             </File>
           </Files>
         </Group>

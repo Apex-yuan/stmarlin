@@ -49,7 +49,7 @@ extern uint16_t USART_RX_STA;         		//接收状态标记
 
 void MYSERIAL_checkRx(void);
 unsigned int MYSERIAL_available(void);
-uint8_t MYSERIAL_read(void);
+int MYSERIAL_read(void);
 void MYSERIAL_flush(void);
 
 #endif //__SERIAL_H

@@ -19,7 +19,7 @@
 #include "stdio.h"  //在此处包含stdio.h文件因此，在外部文件中只需包含usart.h便可以直接使用printf、scanf等函数
 
 
-#define USE_MICROLIB      1  //(1)使用微库/（0）不使用微库 ，选择使用微库需要在Option->Target选项栏中勾选上USE MicroLIB
+#define USE_MICROLIB      0  //(1)使用微库/（0）不使用微库 ，选择使用微库需要在Option->Target选项栏中勾选上USE MicroLIB
 #define EN_USART1_RX 			1		//使能（1）/禁止（0）串口1接收
 
 
@@ -28,3 +28,6 @@ void Usart1Init(uint32_t baud);
 
 
 #endif //__USART_H
+
+
+

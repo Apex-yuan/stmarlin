@@ -68,7 +68,7 @@ void setup(void);
 void FlushSerialRequestResend(void);
 void ClearToSend(void);
 
-extern inline void gcode_G4(void);
+//extern inline void gcode_G4(void);
 
 
 void get_coordinates(void);

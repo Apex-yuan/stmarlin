@@ -1,7 +1,8 @@
 #ifndef __CARDREADER_H
 #define __CARDREADER_H
 
-#include "sys.h"
+#include "stmarlin.h"
+#include "chip.h"
 #include "ff.h"
 
 #define SD_FINISHED_STEPPERRELEASE true  //if sd support and the file is finished: disable steppers?

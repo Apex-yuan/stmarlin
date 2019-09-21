@@ -120,7 +120,7 @@
 
 ring_buffer rx_buffer  =  { { 0 }, 0, 0 };
 
-void store_char(unsigned char c)  //将接收到的数据存入缓冲区
+/*static inline*/ void store_char(unsigned char c)  //将接收到的数据存入缓冲区
 {
   int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
   // if we should be storing the received character into the location  //如果我们应该存储的接收到的字符的位置刚好
@@ -136,13 +136,10 @@ void store_char(unsigned char c)  //将接收到的数据存入缓冲区
 
 void MYSERIAL_checkRx(void)  //检测接收到的数据
 { 
-	unsigned char c;
-	unsigned int i;
-	
-	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) 
+	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) //接收中断
 	{ 
-		c = USART_ReceiveData(USART1);
-		i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
+		unsigned char c = USART_ReceiveData(USART1);
+		unsigned int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
 		// if we should be storing the received character into the location
 		// just before the tail (meaning that the head would advance to the
 		// current location of the tail), we're about to overflow the buffer
@@ -160,13 +157,13 @@ unsigned int MYSERIAL_available(void)  //返回串口缓存区中数据的个数
    return (unsigned int)(RX_BUFFER_SIZE + rx_buffer.head - rx_buffer.tail) % RX_BUFFER_SIZE;
 }
 
-uint8_t MYSERIAL_read(void)  //按存入顺序逐个读取缓冲区的数据
+int MYSERIAL_read(void)  //按存入顺序逐个读取缓冲区的数据
 { 
 	uint8_t c;
   // if the head isn't ahead of the tail, we don't have any characters //如果头不是在尾的前面，将收不到任何字符
   if (rx_buffer.head == rx_buffer.tail) 
 	{
-    return 0;
+    return -1;
   } 
 	else 
 	{

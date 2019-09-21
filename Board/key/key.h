@@ -1,7 +1,7 @@
 #ifndef __key_H
 #define __key_H
 
-#include "sys.h"
+#include "chip.h"
 
 //#define KEY0 PCin(0)  //PC0
 //#define KEY1 PDin(12)  //PD12

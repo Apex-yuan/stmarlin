@@ -117,7 +117,7 @@ static int8_t prev_block_index(int8_t block_index) {
 
 // Calculates the distance (not time) it takes to accelerate from initial_rate to target_rate using the 
 // given acceleration://计算以给定的加速度从初始速度加速到目标速度需要的距离	（步数）
-static inline float estimate_acceleration_distance(float initial_rate, float target_rate, float acceleration) {
+/*static inline*/ float estimate_acceleration_distance(float initial_rate, float target_rate, float acceleration) {
   if (acceleration!=0) {
     return((target_rate*target_rate-initial_rate*initial_rate)/
       (2.0*acceleration));
@@ -133,7 +133,7 @@ static inline float estimate_acceleration_distance(float initial_rate, float tar
 // deceleration in the cases where the trapezoid has no plateau (i.e. never reaches maximum speed)
 //如果你想以起始速度开始加速到这个点并以最终速度结束整个旅程的距离，这个函数给你了这个开始刹车的点（以负的加速度速率）
 //这可以被用来计算加速减速的交叉点，在这种情况下梯形没有高原（短底边）
-static inline float intersection_distance(float initial_rate, float final_rate, float acceleration, float distance) {
+/*static inline*/ float intersection_distance(float initial_rate, float final_rate, float acceleration, float distance) {
   if (acceleration!=0) {
     return((2.0*acceleration*distance-initial_rate*initial_rate+final_rate*final_rate) / (4.0*acceleration) );
   }
@@ -215,7 +215,7 @@ void calculate_trapezoid_for_block(block_t *block, float entry_factor, float exi
 //在这个点计算最大允许的速度，当你必须能够用在指定的距离内的加速度到达目标速度。
 // Calculates the maximum allowable speed at this point when you must be able to reach target_velocity using the 
 // acceleration within the allotted distance.//计算在这个你必须能够在分配的距离内以加速度达到目标速度的点最大的可容许的速度值
-static inline float max_allowable_speed(float acceleration, float target_velocity, float distance) {  //最大的起始速度
+/*static inline*/ float max_allowable_speed(float acceleration, float target_velocity, float distance) {  //最大的起始速度
   return  sqrt(target_velocity*target_velocity-2*acceleration*distance);
 }
 

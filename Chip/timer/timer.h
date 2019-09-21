@@ -4,6 +4,7 @@
 #include "stm32f10x.h"
 
 extern volatile unsigned long  SystemCurrentTime;
+extern uint8_t keyPressed;
 
 #define millis() SystemCurrentTime 	 //millis（）获取机器运行的时间长度。
 
