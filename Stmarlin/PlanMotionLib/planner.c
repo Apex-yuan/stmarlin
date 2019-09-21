@@ -38,6 +38,7 @@
 #include "stepper.h"
 #include "temperature.h"
 #include "language.h"
+#include "lcd12864_menu.h"
 
 
 
@@ -549,7 +550,7 @@ void plan_buffer_line(const float x, const float y, const float z, const float e
   while(block_buffer_tail == next_buffer_head) {  //检测block是否有空间，如果没有则等待并执行下面两个函数
     manage_heater(); 
     manage_inactivity();
-    //lcd_update();	
+    lcd_update();	
   }
 
   // The target position of the tool in absolute steps

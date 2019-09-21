@@ -5,6 +5,7 @@
 #include "temperature.h"
 #include "serial.h"
 #include "language.h"
+#include "lcd12864_menu.h"
 
 #include "usart.h"
 #include "timer.h"
@@ -600,8 +601,7 @@ void st_synchronize(void) {
   while( blocks_queued()) {
     manage_heater();
     manage_inactivity();
-//    lcd_update();
-    printf("1111111111\n");
+    lcd_update();
   }
 }
 
